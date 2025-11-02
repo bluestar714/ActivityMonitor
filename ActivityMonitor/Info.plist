@@ -58,6 +58,13 @@
         <string>fetch</string>
         <string>processing</string>
     </array>
+    <key>BGTaskSchedulerPermittedIdentifiers</key>
+    <array>
+        <string>com.activitymonitor.app.refresh</string>
+        <string>com.activitymonitor.app.cleanup</string>
+    </array>
+    <key>NSSupportsLiveActivities</key>
+    <true/>
     <key>NSPrivacyAccessedAPITypes</key>
     <array>
         <dict>

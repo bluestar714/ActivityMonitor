@@ -12,7 +12,7 @@ struct ContentView: View {
     @Environment(MetricsManager.self) private var metricsManager
     @Environment(SettingsManager.self) private var settingsManager
     @State private var showingSettings = false
-    @State private var showingPiPView = false
+    @State private var liveActivityActive = false
 
     var body: some View {
         NavigationStack {
@@ -21,16 +21,22 @@ struct ContentView: View {
                 .navigationBarTitleDisplayMode(.large)
                 .toolbar {
                     ToolbarItem(placement: .topBarLeading) {
-                        Button {
-                            showingPiPView = true
-                        } label: {
-                            Label("Picture in Picture", systemImage: "pip.enter")
+                        // Live Activity Button (iOS 16.1+)
+                        if #available(iOS 16.1, *) {
+                            Button {
+                                toggleLiveActivity()
+                            } label: {
+                                Label(
+                                    liveActivityActive ? "Stop Live Activity" : "Start Live Activity",
+                                    systemImage: liveActivityActive ? "livephoto.slash" : "livephoto"
+                                )
                                 .symbolRenderingMode(.multicolor)
+                            }
+                            .buttonStyle(.bordered)
+                            .buttonBorderShape(.capsule)
+                            .tint(liveActivityActive ? .red : .purple)
+                            .sensoryFeedback(.selection, trigger: liveActivityActive)
                         }
-                        .buttonStyle(.bordered)
-                        .buttonBorderShape(.capsule)
-                        .tint(.blue)
-                        .sensoryFeedback(.selection, trigger: showingPiPView)
                     }
 
                     ToolbarItem(placement: .topBarTrailing) {
@@ -53,10 +59,24 @@ struct ContentView: View {
                         .presentationCornerRadius(24)
                         .presentationBackground(.ultraThinMaterial)
                 }
-                .fullScreenCover(isPresented: $showingPiPView) {
-                    PiPContainerView(isPresented: $showingPiPView)
-                        .presentationBackground(.clear)
-                }
+        }
+    }
+
+    // MARK: - Live Activity Control
+
+    private func toggleLiveActivity() {
+        if #available(iOS 16.1, *) {
+            let liveActivityManager = LiveActivityManager.shared
+
+            if liveActivityActive {
+                // Stop Live Activity
+                liveActivityManager.endLiveActivity()
+                liveActivityActive = false
+            } else {
+                // Start Live Activity
+                liveActivityManager.startLiveActivity(with: metricsManager.currentMetrics)
+                liveActivityActive = true
+            }
         }
     }
 }

@@ -22,12 +22,25 @@ class MetricsManager {
     private let collector = SystemMetricsCollector()
     private var timer: Timer?
     private let settingsManager = SettingsManager.shared
+    private let sharedDataManager = SharedDataManager.shared
 
     private var maxDataPoints: Int {
         return settingsManager.settings.maxDataPoints
     }
 
     private init() {}
+
+    // MARK: - Background Support
+
+    func saveToSharedStorage() {
+        sharedDataManager.saveCurrentMetrics(currentMetrics)
+        sharedDataManager.saveMetricsHistory(
+            cpu: cpuHistory,
+            memory: memoryHistory,
+            network: networkHistory,
+            storage: storageHistory
+        )
+    }
 
     // MARK: - Monitoring Control
 
@@ -94,6 +107,23 @@ class MetricsManager {
             storageHistory.append(snapshot.storage)
             if storageHistory.count > maxDataPoints {
                 storageHistory.removeFirst()
+            }
+        }
+
+        // Save to shared storage for widgets and Live Activities
+        saveToSharedStorage()
+
+        // Check thresholds and send notifications
+        Task { @MainActor in
+            let notificationManager = NotificationManager.shared
+            notificationManager.checkMetricsAndNotify(metrics: snapshot)
+        }
+
+        // Update Live Activities if running (iOS 16.1+)
+        if #available(iOS 16.1, *) {
+            Task { @MainActor in
+                let liveActivityManager = LiveActivityManager.shared
+                liveActivityManager.updateLiveActivity(with: snapshot)
             }
         }
     }

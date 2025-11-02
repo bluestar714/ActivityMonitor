@@ -27,12 +27,25 @@ enum MetricType: String, CaseIterable, Codable {
 
 // MARK: - CPU Metrics
 
-struct CPUMetrics {
+struct CPUMetrics: Codable {
     let usage: Double // Percentage 0-100
     let userTime: Double
     let systemTime: Double
     let idleTime: Double
     let timestamp: Date
+
+    // Computed properties for Widget compatibility
+    var userPercentage: Double {
+        return userTime
+    }
+
+    var systemPercentage: Double {
+        return systemTime
+    }
+
+    var idlePercentage: Double {
+        return idleTime
+    }
 
     static let zero = CPUMetrics(
         usage: 0,
@@ -45,7 +58,7 @@ struct CPUMetrics {
 
 // MARK: - Memory Metrics
 
-struct MemoryMetrics {
+struct MemoryMetrics: Codable {
     let used: UInt64 // Bytes
     let total: UInt64
     let free: UInt64
@@ -68,6 +81,26 @@ struct MemoryMetrics {
         return Double(total) / 1_073_741_824.0
     }
 
+    var freeGB: Double {
+        return Double(free) / 1_073_741_824.0
+    }
+
+    var activeGB: Double {
+        return Double(active) / 1_073_741_824.0
+    }
+
+    var inactiveGB: Double {
+        return Double(inactive) / 1_073_741_824.0
+    }
+
+    var wiredGB: Double {
+        return Double(wired) / 1_073_741_824.0
+    }
+
+    var compressedGB: Double {
+        return Double(compressed) / 1_073_741_824.0
+    }
+
     static let zero = MemoryMetrics(
         used: 0,
         total: 0,
@@ -82,7 +115,7 @@ struct MemoryMetrics {
 
 // MARK: - Network Metrics
 
-struct NetworkMetrics {
+struct NetworkMetrics: Codable {
     let bytesReceived: UInt64
     let bytesSent: UInt64
     let packetsReceived: UInt64
@@ -112,7 +145,7 @@ struct NetworkMetrics {
 
 // MARK: - Storage Metrics
 
-struct StorageMetrics {
+struct StorageMetrics: Codable {
     let total: UInt64 // Bytes
     let used: UInt64
     let free: UInt64
@@ -135,6 +168,18 @@ struct StorageMetrics {
         return Double(used) / 1_073_741_824.0
     }
 
+    var freeSpaceGB: Double {
+        return freeGB
+    }
+
+    var totalSpaceGB: Double {
+        return totalGB
+    }
+
+    var usedSpaceGB: Double {
+        return usedGB
+    }
+
     static let zero = StorageMetrics(
         total: 0,
         used: 0,
@@ -145,7 +190,7 @@ struct StorageMetrics {
 
 // MARK: - Metrics Snapshot
 
-struct MetricsSnapshot {
+struct MetricsSnapshot: Codable {
     let cpu: CPUMetrics
     let memory: MemoryMetrics
     let network: NetworkMetrics

@@ -116,13 +116,15 @@ class MetricsManager {
 
         // Check thresholds and send notifications
         Task { @MainActor in
-            await NotificationManager.shared.checkMetricsAndNotify(metrics: snapshot)
+            let notificationManager = NotificationManager.shared
+            notificationManager.checkMetricsAndNotify(metrics: snapshot)
         }
 
         // Update Live Activities if running (iOS 16.1+)
         if #available(iOS 16.1, *) {
             Task { @MainActor in
-                await LiveActivityManager.shared.updateLiveActivity(with: snapshot)
+                let liveActivityManager = LiveActivityManager.shared
+                liveActivityManager.updateLiveActivity(with: snapshot)
             }
         }
     }

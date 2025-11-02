@@ -2,514 +2,365 @@
 //  ActivityMonitorWidget.swift
 //  ActivityMonitorWidget
 //
-//  Home Screen Widget for Activity Monitor
+//  Home screen widget for Activity Monitor
 //
 
 import WidgetKit
 import SwiftUI
-import Charts
 
-// MARK: - Widget Timeline Provider
+// MARK: - Timeline Provider
 
 struct MetricsProvider: TimelineProvider {
-    let sharedDataManager = SharedDataManager.shared
-
     func placeholder(in context: Context) -> MetricsEntry {
-        MetricsEntry(date: Date(), metrics: .zero, cpuHistory: [], memoryHistory: [])
+        MetricsEntry(
+            date: Date(),
+            metrics: .placeholder
+        )
     }
 
-    func getSnapshot(in context: Context, completion: @escaping (MetricsEntry) -> Void) {
-        let metrics = sharedDataManager.loadCurrentMetrics() ?? .zero
-        let cpuHistory = sharedDataManager.loadCPUHistory()
-        let memoryHistory = sharedDataManager.loadMemoryHistory()
-
+    func getSnapshot(in context: Context, completion: @escaping (MetricsEntry) -> ()) {
         let entry = MetricsEntry(
             date: Date(),
-            metrics: metrics,
-            cpuHistory: cpuHistory,
-            memoryHistory: memoryHistory
+            metrics: SharedDataManager.shared.loadCurrentMetrics() ?? .placeholder
         )
         completion(entry)
     }
 
-    func getTimeline(in context: Context, completion: @escaping (Timeline<MetricsEntry>) -> Void) {
+    func getTimeline(in context: Context, completion: @escaping (Timeline<Entry>) -> ()) {
         let currentDate = Date()
-        let metrics = sharedDataManager.loadCurrentMetrics() ?? .zero
-        let cpuHistory = sharedDataManager.loadCPUHistory()
-        let memoryHistory = sharedDataManager.loadMemoryHistory()
+        let metrics = SharedDataManager.shared.loadCurrentMetrics() ?? .placeholder
 
-        let entry = MetricsEntry(
-            date: currentDate,
-            metrics: metrics,
-            cpuHistory: cpuHistory,
-            memoryHistory: memoryHistory
-        )
+        // Create entries for the next hour, updating every minute
+        var entries: [MetricsEntry] = []
+        for minuteOffset in 0..<60 {
+            let entryDate = Calendar.current.date(byAdding: .minute, value: minuteOffset, to: currentDate)!
+            let entry = MetricsEntry(date: entryDate, metrics: metrics)
+            entries.append(entry)
+        }
 
-        // Refresh every minute
-        let nextUpdate = Calendar.current.date(byAdding: .minute, value: 1, to: currentDate)!
-        let timeline = Timeline(entries: [entry], policy: .after(nextUpdate))
-
+        // Update timeline every minute
+        let timeline = Timeline(entries: entries, policy: .atEnd)
         completion(timeline)
     }
 }
 
-// MARK: - Widget Entry
+// MARK: - Timeline Entry
 
 struct MetricsEntry: TimelineEntry {
     let date: Date
     let metrics: MetricsSnapshot
-    let cpuHistory: [CPUMetrics]
-    let memoryHistory: [MemoryMetrics]
 }
 
 // MARK: - Widget Views
 
-@available(iOS 17.0, *)
 struct ActivityMonitorWidgetEntryView: View {
-    @Environment(\.widgetFamily) var widgetFamily
+    @Environment(\.widgetFamily) var family
     var entry: MetricsProvider.Entry
 
     var body: some View {
-        switch widgetFamily {
+        switch family {
         case .systemSmall:
-            SmallWidgetView(entry: entry)
+            SmallWidgetView(metrics: entry.metrics, date: entry.date)
         case .systemMedium:
-            MediumWidgetView(entry: entry)
+            MediumWidgetView(metrics: entry.metrics, date: entry.date)
         case .systemLarge:
-            LargeWidgetView(entry: entry)
+            LargeWidgetView(metrics: entry.metrics, date: entry.date)
         default:
-            SmallWidgetView(entry: entry)
+            SmallWidgetView(metrics: entry.metrics, date: entry.date)
         }
     }
 }
 
-// MARK: - Small Widget (Single Metric)
-
-@available(iOS 17.0, *)
+// Small Widget: Shows CPU and Memory
 struct SmallWidgetView: View {
-    var entry: MetricsEntry
+    let metrics: MetricsSnapshot
+    let date: Date
 
     var body: some View {
-        VStack(spacing: 8) {
-            // Header
-            HStack {
-                Image(systemName: "chart.xyaxis.line")
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(.white.opacity(0.9))
+        VStack(alignment: .leading, spacing: 12) {
+            Label("Activity Monitor", systemImage: "chart.xyaxis.line")
+                .font(.caption2.bold())
+                .foregroundStyle(.secondary)
 
-                Spacer()
+            VStack(alignment: .leading, spacing: 8) {
+                // CPU
+                HStack {
+                    Label("CPU", systemImage: "cpu")
+                        .font(.caption)
+                        .foregroundStyle(.blue)
+                    Spacer()
+                    Text("\(Int(metrics.cpu.usage))%")
+                        .font(.headline.bold())
+                        .foregroundStyle(.blue)
+                }
 
-                Text("CPU")
-                    .font(.system(size: 11, weight: .semibold, design: .rounded))
-                    .foregroundStyle(.white.opacity(0.7))
+                // Memory
+                HStack {
+                    Label("Memory", systemImage: "memorychip")
+                        .font(.caption)
+                        .foregroundStyle(.green)
+                    Spacer()
+                    Text("\(Int(metrics.memory.usagePercentage))%")
+                        .font(.headline.bold())
+                        .foregroundStyle(.green)
+                }
             }
 
             Spacer()
 
-            // CPU Usage
-            Text(String(format: "%.0f%%", entry.metrics.cpu.usage))
-                .font(.system(size: 40, weight: .bold, design: .rounded))
-                .foregroundStyle(
-                    LinearGradient(
-                        colors: [.blue, .cyan],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
-                .contentTransition(.numericText())
-
-            // Mini Chart
-            if !entry.cpuHistory.isEmpty {
-                Chart {
-                    ForEach(Array(entry.cpuHistory.suffix(10).enumerated()), id: \.offset) { index, cpu in
-                        LineMark(
-                            x: .value("Time", index),
-                            y: .value("Usage", cpu.usage)
-                        )
-                        .foregroundStyle(.blue.gradient)
-                        .lineStyle(StrokeStyle(lineWidth: 2, lineCap: .round))
-                    }
-                }
-                .chartXAxis(.hidden)
-                .chartYAxis(.hidden)
-                .frame(height: 30)
-            }
+            Text(date, style: .time)
+                .font(.caption2)
+                .foregroundStyle(.tertiary)
         }
-        .padding(12)
-        .containerBackground(for: .widget) {
-            LinearGradient(
-                colors: [.black.opacity(0.8), .black.opacity(0.9)],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-        }
+        .padding()
     }
 }
 
-// MARK: - Medium Widget (2x Metrics)
-
-@available(iOS 17.0, *)
+// Medium Widget: Shows CPU, Memory, and Network
 struct MediumWidgetView: View {
-    var entry: MetricsEntry
+    let metrics: MetricsSnapshot
+    let date: Date
 
     var body: some View {
-        VStack(spacing: 10) {
-            // Header
-            HStack {
-                Image(systemName: "chart.xyaxis.line")
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(.white.opacity(0.9))
-                    .symbolEffect(.pulse)
-
-                Text("Activity Monitor")
-                    .font(.system(size: 13, weight: .bold, design: .rounded))
-                    .foregroundStyle(.white)
+        HStack(spacing: 16) {
+            VStack(alignment: .leading, spacing: 8) {
+                Label("Activity Monitor", systemImage: "chart.xyaxis.line")
+                    .font(.caption.bold())
+                    .foregroundStyle(.secondary)
 
                 Spacer()
 
-                if let lastUpdate = SharedDataManager.shared.getLastUpdateDate() {
-                    Text(timeAgo(from: lastUpdate))
-                        .font(.system(size: 10, weight: .medium, design: .rounded))
-                        .foregroundStyle(.white.opacity(0.6))
+                // CPU
+                VStack(alignment: .leading, spacing: 4) {
+                    Label("CPU", systemImage: "cpu")
+                        .font(.caption2)
+                        .foregroundStyle(.blue)
+                    Text("\(Int(metrics.cpu.usage))%")
+                        .font(.title2.bold())
+                        .foregroundStyle(.blue)
+                }
+
+                // Memory
+                VStack(alignment: .leading, spacing: 4) {
+                    Label("Memory", systemImage: "memorychip")
+                        .font(.caption2)
+                        .foregroundStyle(.green)
+                    Text("\(Int(metrics.memory.usagePercentage))%")
+                        .font(.title2.bold())
+                        .foregroundStyle(.green)
+                }
+
+                Spacer()
+
+                Text(date, style: .time)
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+            }
+
+            Divider()
+
+            VStack(alignment: .leading, spacing: 8) {
+                // Network
+                VStack(alignment: .leading, spacing: 4) {
+                    Label("Network", systemImage: "arrow.down.circle")
+                        .font(.caption2)
+                        .foregroundStyle(.purple)
+                    Text(String(format: "%.1f MB/s", metrics.network.downloadSpeedMBps))
+                        .font(.title3.bold())
+                        .foregroundStyle(.purple)
+                }
+
+                Spacer()
+
+                // Storage
+                VStack(alignment: .leading, spacing: 4) {
+                    Label("Storage", systemImage: "internaldrive")
+                        .font(.caption2)
+                        .foregroundStyle(.orange)
+                    Text(String(format: "%.1f GB free", metrics.storage.freeSpaceGB))
+                        .font(.caption.bold())
+                        .foregroundStyle(.orange)
                 }
             }
-
-            // Metrics
-            HStack(spacing: 12) {
-                MetricCard(
-                    icon: "cpu",
-                    label: "CPU",
-                    value: String(format: "%.0f%%", entry.metrics.cpu.usage),
-                    color: .blue,
-                    history: entry.cpuHistory.map { $0.usage }
-                )
-
-                MetricCard(
-                    icon: "memorychip",
-                    label: "Memory",
-                    value: String(format: "%.0f%%", entry.metrics.memory.usagePercentage),
-                    color: .green,
-                    history: entry.memoryHistory.map { $0.usagePercentage }
-                )
-            }
         }
-        .padding(14)
-        .containerBackground(for: .widget) {
-            LinearGradient(
-                colors: [.black.opacity(0.8), .black.opacity(0.9)],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-        }
-    }
-
-    private func timeAgo(from date: Date) -> String {
-        let seconds = Int(Date().timeIntervalSince(date))
-        if seconds < 60 {
-            return "\(seconds)s ago"
-        } else {
-            return "\(seconds / 60)m ago"
-        }
+        .padding()
     }
 }
 
-// MARK: - Large Widget (4x Metrics)
-
-@available(iOS 17.0, *)
+// Large Widget: Shows all metrics
 struct LargeWidgetView: View {
-    var entry: MetricsEntry
+    let metrics: MetricsSnapshot
+    let date: Date
 
     var body: some View {
-        VStack(spacing: 12) {
+        VStack(alignment: .leading, spacing: 12) {
             // Header
             HStack {
-                Image(systemName: "chart.xyaxis.line")
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(.white.opacity(0.9))
-                    .symbolEffect(.pulse)
+                Label("Activity Monitor", systemImage: "chart.xyaxis.line")
+                    .font(.headline.bold())
+                Spacer()
+                Text(date, style: .time)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
 
-                Text("Activity Monitor")
-                    .font(.system(size: 15, weight: .bold, design: .rounded))
-                    .foregroundStyle(.white)
+            Divider()
+
+            // CPU Section
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Label("CPU Usage", systemImage: "cpu")
+                        .font(.callout.bold())
+                        .foregroundStyle(.blue)
+                    Spacer()
+                    Text("\(Int(metrics.cpu.usage))%")
+                        .font(.title.bold())
+                        .foregroundStyle(.blue)
+                }
+
+                HStack {
+                    Text("User: \(Int(metrics.cpu.userPercentage))%")
+                    Text("System: \(Int(metrics.cpu.systemPercentage))%")
+                    Text("Idle: \(Int(metrics.cpu.idlePercentage))%")
+                }
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+            }
+
+            Divider()
+
+            // Memory Section
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Label("Memory", systemImage: "memorychip")
+                        .font(.callout.bold())
+                        .foregroundStyle(.green)
+                    Spacer()
+                    Text("\(Int(metrics.memory.usagePercentage))%")
+                        .font(.title.bold())
+                        .foregroundStyle(.green)
+                }
+
+                HStack {
+                    Text("Used: \(String(format: "%.1f", metrics.memory.usedGB)) GB")
+                    Spacer()
+                    Text("Free: \(String(format: "%.1f", metrics.memory.freeGB)) GB")
+                }
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+            }
+
+            Divider()
+
+            // Network & Storage
+            HStack(spacing: 20) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Label("Network", systemImage: "arrow.down.circle")
+                        .font(.caption.bold())
+                        .foregroundStyle(.purple)
+                    Text(String(format: "↓ %.1f MB/s", metrics.network.downloadSpeedMBps))
+                        .font(.callout.bold())
+                        .foregroundStyle(.purple)
+                    Text(String(format: "↑ %.1f MB/s", metrics.network.uploadSpeedMBps))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
 
                 Spacer()
 
-                if let lastUpdate = SharedDataManager.shared.getLastUpdateDate() {
-                    VStack(alignment: .trailing, spacing: 2) {
-                        Text("Updated")
-                            .font(.system(size: 9, weight: .medium, design: .rounded))
-                            .foregroundStyle(.white.opacity(0.5))
-                        Text(timeAgo(from: lastUpdate))
-                            .font(.system(size: 11, weight: .semibold, design: .rounded))
-                            .foregroundStyle(.white.opacity(0.7))
-                    }
+                VStack(alignment: .leading, spacing: 4) {
+                    Label("Storage", systemImage: "internaldrive")
+                        .font(.caption.bold())
+                        .foregroundStyle(.orange)
+                    Text(String(format: "%.1f GB free", metrics.storage.freeSpaceGB))
+                        .font(.callout.bold())
+                        .foregroundStyle(.orange)
+                    Text("\(Int(metrics.storage.usagePercentage))% used")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 }
             }
-
-            // Top Row
-            HStack(spacing: 12) {
-                MetricCard(
-                    icon: "cpu",
-                    label: "CPU",
-                    value: String(format: "%.0f%%", entry.metrics.cpu.usage),
-                    color: .blue,
-                    history: entry.cpuHistory.map { $0.usage }
-                )
-
-                MetricCard(
-                    icon: "memorychip",
-                    label: "Memory",
-                    value: String(format: "%.0f%%", entry.metrics.memory.usagePercentage),
-                    color: .green,
-                    history: entry.memoryHistory.map { $0.usagePercentage }
-                )
-            }
-
-            // Bottom Row
-            HStack(spacing: 12) {
-                NetworkMetricCard(metrics: entry.metrics.network)
-
-                StorageMetricCard(metrics: entry.metrics.storage)
-            }
         }
-        .padding(14)
-        .containerBackground(for: .widget) {
-            LinearGradient(
-                colors: [.black.opacity(0.8), .black.opacity(0.9)],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-        }
-    }
-
-    private func timeAgo(from date: Date) -> String {
-        let seconds = Int(Date().timeIntervalSince(date))
-        if seconds < 60 {
-            return "\(seconds)s ago"
-        } else if seconds < 3600 {
-            return "\(seconds / 60)m ago"
-        } else {
-            return "\(seconds / 3600)h ago"
-        }
-    }
-}
-
-// MARK: - Metric Card Component
-
-@available(iOS 17.0, *)
-struct MetricCard: View {
-    let icon: String
-    let label: String
-    let value: String
-    let color: Color
-    let history: [Double]
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Image(systemName: icon)
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(color.gradient)
-
-                Text(label)
-                    .font(.system(size: 11, weight: .semibold, design: .rounded))
-                    .foregroundStyle(.white.opacity(0.7))
-
-                Spacer()
-            }
-
-            Text(value)
-                .font(.system(size: 24, weight: .bold, design: .rounded))
-                .foregroundStyle(color.gradient)
-                .contentTransition(.numericText())
-
-            // Mini chart
-            if !history.isEmpty {
-                Chart {
-                    ForEach(Array(history.suffix(15).enumerated()), id: \.offset) { index, value in
-                        LineMark(
-                            x: .value("Time", index),
-                            y: .value("Value", value)
-                        )
-                        .foregroundStyle(color.gradient)
-                        .lineStyle(StrokeStyle(lineWidth: 1.5, lineCap: .round))
-                    }
-                }
-                .chartXAxis(.hidden)
-                .chartYAxis(.hidden)
-                .frame(height: 35)
-            }
-        }
-        .padding(10)
-        .background {
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(.white.opacity(0.05))
-        }
-    }
-}
-
-// MARK: - Network Metric Card
-
-@available(iOS 17.0, *)
-struct NetworkMetricCard: View {
-    let metrics: NetworkMetrics
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Image(systemName: "network")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(.orange.gradient)
-
-                Text("Network")
-                    .font(.system(size: 11, weight: .semibold, design: .rounded))
-                    .foregroundStyle(.white.opacity(0.7))
-
-                Spacer()
-            }
-
-            Text(formatSpeed(metrics.downloadSpeedMBps))
-                .font(.system(size: 24, weight: .bold, design: .rounded))
-                .foregroundStyle(.orange.gradient)
-
-            HStack(spacing: 4) {
-                Image(systemName: "arrow.down")
-                    .font(.system(size: 9))
-                Text(formatSpeed(metrics.downloadSpeedMBps))
-                    .font(.system(size: 10, weight: .medium, design: .rounded))
-
-                Spacer()
-
-                Image(systemName: "arrow.up")
-                    .font(.system(size: 9))
-                Text(formatSpeed(metrics.uploadSpeedMBps))
-                    .font(.system(size: 10, weight: .medium, design: .rounded))
-            }
-            .foregroundStyle(.white.opacity(0.6))
-        }
-        .padding(10)
-        .background {
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(.white.opacity(0.05))
-        }
-    }
-
-    private func formatSpeed(_ speedMBps: Double) -> String {
-        if speedMBps >= 1.0 {
-            return String(format: "%.1f MB/s", speedMBps)
-        } else {
-            return String(format: "%.0f KB/s", speedMBps * 1024)
-        }
-    }
-}
-
-// MARK: - Storage Metric Card
-
-@available(iOS 17.0, *)
-struct StorageMetricCard: View {
-    let metrics: StorageMetrics
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Image(systemName: "internaldrive")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(.purple.gradient)
-
-                Text("Storage")
-                    .font(.system(size: 11, weight: .semibold, design: .rounded))
-                    .foregroundStyle(.white.opacity(0.7))
-
-                Spacer()
-            }
-
-            Text(String(format: "%.0f%%", metrics.usagePercentage))
-                .font(.system(size: 24, weight: .bold, design: .rounded))
-                .foregroundStyle(.purple.gradient)
-
-            HStack(spacing: 4) {
-                Text("Used:")
-                    .font(.system(size: 10, weight: .medium, design: .rounded))
-                Text(formatBytes(metrics.used))
-                    .font(.system(size: 10, weight: .semibold, design: .rounded))
-
-                Spacer()
-
-                Text("Free:")
-                    .font(.system(size: 10, weight: .medium, design: .rounded))
-                Text(formatBytes(metrics.free))
-                    .font(.system(size: 10, weight: .semibold, design: .rounded))
-            }
-            .foregroundStyle(.white.opacity(0.6))
-        }
-        .padding(10)
-        .background {
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(.white.opacity(0.05))
-        }
-    }
-
-    private func formatBytes(_ bytes: UInt64) -> String {
-        let formatter = ByteCountFormatter()
-        formatter.countStyle = .binary
-        formatter.allowedUnits = [.useGB, .useTB]
-        formatter.includesUnit = true
-        formatter.includesCount = true
-        return formatter.string(fromByteCount: Int64(bytes))
+        .padding()
     }
 }
 
 // MARK: - Widget Configuration
 
-@available(iOS 17.0, *)
 struct ActivityMonitorWidget: Widget {
     let kind: String = "ActivityMonitorWidget"
 
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: kind, provider: MetricsProvider()) { entry in
-            ActivityMonitorWidgetEntryView(entry: entry)
+            if #available(iOS 17.0, *) {
+                ActivityMonitorWidgetEntryView(entry: entry)
+                    .containerBackground(.fill.tertiary, for: .widget)
+            } else {
+                ActivityMonitorWidgetEntryView(entry: entry)
+                    .padding()
+                    .background()
+            }
         }
         .configurationDisplayName("Activity Monitor")
-        .description("Monitor your device's CPU, memory, network, and storage in real-time.")
+        .description("Real-time system performance metrics")
         .supportedFamilies([.systemSmall, .systemMedium, .systemLarge])
-        .contentMarginsDisabled()
     }
 }
 
-// MARK: - Preview
+// MARK: - Placeholder Data
 
-@available(iOS 17.0, *)
+extension MetricsSnapshot {
+    static var placeholder: MetricsSnapshot {
+        MetricsSnapshot(
+            cpu: CPUMetrics(
+                usage: 45.0,
+                userPercentage: 25.0,
+                systemPercentage: 15.0,
+                idlePercentage: 60.0
+            ),
+            memory: MemoryMetrics(
+                totalGB: 6.0,
+                usedGB: 3.5,
+                freeGB: 2.5,
+                activeGB: 2.0,
+                inactiveGB: 1.0,
+                wiredGB: 0.5,
+                compressedGB: 0.0,
+                usagePercentage: 58.3
+            ),
+            network: NetworkMetrics(
+                downloadSpeedMBps: 2.4,
+                uploadSpeedMBps: 0.8,
+                totalDownloadedGB: 125.5,
+                totalUploadedGB: 45.2
+            ),
+            storage: StorageMetrics(
+                totalSpaceGB: 128.0,
+                usedSpaceGB: 85.3,
+                freeSpaceGB: 42.7,
+                usagePercentage: 66.6
+            ),
+            timestamp: Date()
+        )
+    }
+}
+
+// MARK: - Previews
+
 #Preview(as: .systemSmall) {
     ActivityMonitorWidget()
 } timeline: {
-    MetricsEntry(
-        date: Date(),
-        metrics: MetricsSnapshot(
-            cpu: CPUMetrics(usage: 45.0, userTime: 30.0, systemTime: 15.0, idleTime: 55.0, timestamp: Date()),
-            memory: MemoryMetrics(used: 4_000_000_000, total: 8_000_000_000, free: 4_000_000_000, active: 3_000_000_000, inactive: 1_000_000_000, wired: 1_000_000_000, compressed: 500_000_000, timestamp: Date()),
-            network: NetworkMetrics(bytesReceived: 1_000_000, bytesSent: 500_000, packetsReceived: 1000, packetsSent: 500, downloadSpeed: 1_500_000, uploadSpeed: 500_000, timestamp: Date()),
-            storage: StorageMetrics(total: 256_000_000_000, used: 150_000_000_000, free: 106_000_000_000, timestamp: Date()),
-            timestamp: Date()
-        ),
-        cpuHistory: [CPUMetrics(usage: 30, userTime: 20, systemTime: 10, idleTime: 70, timestamp: Date())],
-        memoryHistory: [MemoryMetrics(used: 4_000_000_000, total: 8_000_000_000, free: 4_000_000_000, active: 3_000_000_000, inactive: 1_000_000_000, wired: 1_000_000_000, compressed: 500_000_000, timestamp: Date())]
-    )
+    MetricsEntry(date: .now, metrics: .placeholder)
 }
 
-@available(iOS 17.0, *)
 #Preview(as: .systemMedium) {
     ActivityMonitorWidget()
 } timeline: {
-    MetricsEntry(
-        date: Date(),
-        metrics: MetricsSnapshot(
-            cpu: CPUMetrics(usage: 45.0, userTime: 30.0, systemTime: 15.0, idleTime: 55.0, timestamp: Date()),
-            memory: MemoryMetrics(used: 4_000_000_000, total: 8_000_000_000, free: 4_000_000_000, active: 3_000_000_000, inactive: 1_000_000_000, wired: 1_000_000_000, compressed: 500_000_000, timestamp: Date()),
-            network: NetworkMetrics(bytesReceived: 1_000_000, bytesSent: 500_000, packetsReceived: 1000, packetsSent: 500, downloadSpeed: 1_500_000, uploadSpeed: 500_000, timestamp: Date()),
-            storage: StorageMetrics(total: 256_000_000_000, used: 150_000_000_000, free: 106_000_000_000, timestamp: Date()),
-            timestamp: Date()
-        ),
-        cpuHistory: [],
-        memoryHistory: []
-    )
+    MetricsEntry(date: .now, metrics: .placeholder)
+}
+
+#Preview(as: .systemLarge) {
+    ActivityMonitorWidget()
+} timeline: {
+    MetricsEntry(date: .now, metrics: .placeholder)
 }

@@ -3,15 +3,21 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 56;
+	objectVersion = 70;
 	objects = {
 
 /* Begin PBXBuildFile section */
+		6CB744F62EB67AD200A1BAB0 /* NotificationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6CB744F42EB67AD200A1BAB0 /* NotificationManager.swift */; };
+		6CB744F72EB67AD200A1BAB0 /* ActivityMonitorLiveActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6CB744F22EB67AD200A1BAB0 /* ActivityMonitorLiveActivity.swift */; };
+		6CB744F82EB67AD200A1BAB0 /* BackgroundTaskManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6CB744F32EB67AD200A1BAB0 /* BackgroundTaskManager.swift */; };
+		6CB744F92EB67AD200A1BAB0 /* SharedDataManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6CB744F52EB67AD200A1BAB0 /* SharedDataManager.swift */; };
+		6CB7451F2EB7337B00A1BAB0 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6CB745002EB7309B00A1BAB0 /* WidgetKit.framework */; };
+		6CB745202EB7337B00A1BAB0 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6CB745022EB7309B00A1BAB0 /* SwiftUI.framework */; };
+		6CB7452F2EB7337D00A1BAB0 /* ActivityMonitorWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 6CB7451E2EB7337B00A1BAB0 /* ActivityMonitorWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		A1000001000000000000001 /* ActivityMonitorApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000001000000000000001 /* ActivityMonitorApp.swift */; };
 		A1000002000000000000001 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000002000000000000001 /* ContentView.swift */; };
 		A1000003000000000000001 /* DashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000003000000000000001 /* DashboardView.swift */; };
 		A1000004000000000000001 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000004000000000000001 /* SettingsView.swift */; };
-		A1000005000000000000001 /* PiPView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000005000000000000001 /* PiPView.swift */; };
 		A1000006000000000000001 /* ModernLineChartView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000006000000000000001 /* ModernLineChartView.swift */; };
 		A1000007000000000000001 /* ModernMetricCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000007000000000000001 /* ModernMetricCardView.swift */; };
 		A1000008000000000000001 /* LineChartView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000008000000000000001 /* LineChartView.swift */; };
@@ -24,12 +30,42 @@
 		A1000015000000000000001 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A2000015000000000000001 /* Assets.xcassets */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXContainerItemProxy section */
+		6CB7452D2EB7337D00A1BAB0 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = AA000001000000000000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 6CB7451D2EB7337B00A1BAB0;
+			remoteInfo = ActivityMonitorWidgetExtension;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		6CB745132EB7309C00A1BAB0 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				6CB7452F2EB7337D00A1BAB0 /* ActivityMonitorWidgetExtension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
+		6CB744F22EB67AD200A1BAB0 /* ActivityMonitorLiveActivity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityMonitorLiveActivity.swift; sourceTree = "<group>"; };
+		6CB744F32EB67AD200A1BAB0 /* BackgroundTaskManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackgroundTaskManager.swift; sourceTree = "<group>"; };
+		6CB744F42EB67AD200A1BAB0 /* NotificationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationManager.swift; sourceTree = "<group>"; };
+		6CB744F52EB67AD200A1BAB0 /* SharedDataManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedDataManager.swift; sourceTree = "<group>"; };
+		6CB745002EB7309B00A1BAB0 /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
+		6CB745022EB7309B00A1BAB0 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
+		6CB7451E2EB7337B00A1BAB0 /* ActivityMonitorWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = ActivityMonitorWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		A2000001000000000000001 /* ActivityMonitorApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityMonitorApp.swift; sourceTree = "<group>"; };
 		A2000002000000000000001 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		A2000003000000000000001 /* DashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardView.swift; sourceTree = "<group>"; };
 		A2000004000000000000001 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
-		A2000005000000000000001 /* PiPView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PiPView.swift; sourceTree = "<group>"; };
 		A2000006000000000000001 /* ModernLineChartView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModernLineChartView.swift; sourceTree = "<group>"; };
 		A2000007000000000000001 /* ModernMetricCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModernMetricCardView.swift; sourceTree = "<group>"; };
 		A2000008000000000000001 /* LineChartView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LineChartView.swift; sourceTree = "<group>"; };
@@ -45,7 +81,30 @@
 		A3000001000000000000001 /* ActivityMonitor.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ActivityMonitor.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		6CB745302EB7337D00A1BAB0 /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 6CB7451D2EB7337B00A1BAB0 /* ActivityMonitorWidgetExtension */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		6CB745212EB7337B00A1BAB0 /* ActivityMonitorWidget */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (6CB745302EB7337D00A1BAB0 /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = ActivityMonitorWidget; sourceTree = "<group>"; };
+/* End PBXFileSystemSynchronizedRootGroup section */
+
 /* Begin PBXFrameworksBuildPhase section */
+		6CB7451B2EB7337B00A1BAB0 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				6CB745202EB7337B00A1BAB0 /* SwiftUI.framework in Frameworks */,
+				6CB7451F2EB7337B00A1BAB0 /* WidgetKit.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		A4000001000000000000001 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -56,10 +115,21 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		6CB744FF2EB7309B00A1BAB0 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				6CB745002EB7309B00A1BAB0 /* WidgetKit.framework */,
+				6CB745022EB7309B00A1BAB0 /* SwiftUI.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 		A5000001000000000000001 = {
 			isa = PBXGroup;
 			children = (
 				A5000002000000000000001 /* ActivityMonitor */,
+				6CB745212EB7337B00A1BAB0 /* ActivityMonitorWidget */,
+				6CB744FF2EB7309B00A1BAB0 /* Frameworks */,
 				A5000003000000000000001 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -83,6 +153,7 @@
 			isa = PBXGroup;
 			children = (
 				A3000001000000000000001 /* ActivityMonitor.app */,
+				6CB7451E2EB7337B00A1BAB0 /* ActivityMonitorWidgetExtension.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -93,7 +164,6 @@
 				A2000002000000000000001 /* ContentView.swift */,
 				A2000003000000000000001 /* DashboardView.swift */,
 				A2000004000000000000001 /* SettingsView.swift */,
-				A2000005000000000000001 /* PiPView.swift */,
 				A2000006000000000000001 /* ModernLineChartView.swift */,
 				A2000007000000000000001 /* ModernMetricCardView.swift */,
 				A2000008000000000000001 /* LineChartView.swift */,
@@ -116,6 +186,10 @@
 			children = (
 				A2000012000000000000001 /* SystemMetricsCollector.swift */,
 				A2000013000000000000001 /* MetricsManager.swift */,
+				6CB744F22EB67AD200A1BAB0 /* ActivityMonitorLiveActivity.swift */,
+				6CB744F32EB67AD200A1BAB0 /* BackgroundTaskManager.swift */,
+				6CB744F42EB67AD200A1BAB0 /* NotificationManager.swift */,
+				6CB744F52EB67AD200A1BAB0 /* SharedDataManager.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -131,6 +205,28 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		6CB7451D2EB7337B00A1BAB0 /* ActivityMonitorWidgetExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 6CB745312EB7337D00A1BAB0 /* Build configuration list for PBXNativeTarget "ActivityMonitorWidgetExtension" */;
+			buildPhases = (
+				6CB7451A2EB7337B00A1BAB0 /* Sources */,
+				6CB7451B2EB7337B00A1BAB0 /* Frameworks */,
+				6CB7451C2EB7337B00A1BAB0 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				6CB745212EB7337B00A1BAB0 /* ActivityMonitorWidget */,
+			);
+			name = ActivityMonitorWidgetExtension;
+			packageProductDependencies = (
+			);
+			productName = ActivityMonitorWidgetExtension;
+			productReference = 6CB7451E2EB7337B00A1BAB0 /* ActivityMonitorWidgetExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 		A6000001000000000000001 /* ActivityMonitor */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = A7000001000000000000001 /* Build configuration list for PBXNativeTarget "ActivityMonitor" */;
@@ -138,10 +234,12 @@
 				A8000001000000000000001 /* Sources */,
 				A4000001000000000000001 /* Frameworks */,
 				A9000001000000000000001 /* Resources */,
+				6CB745132EB7309C00A1BAB0 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				6CB7452E2EB7337D00A1BAB0 /* PBXTargetDependency */,
 			);
 			name = ActivityMonitor;
 			productName = ActivityMonitor;
@@ -155,9 +253,12 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
-				LastSwiftUpdateCheck = 1500;
+				LastSwiftUpdateCheck = 1600;
 				LastUpgradeCheck = 1500;
 				TargetAttributes = {
+					6CB7451D2EB7337B00A1BAB0 = {
+						CreatedOnToolsVersion = 16.0;
+					};
 					A6000001000000000000001 = {
 						CreatedOnToolsVersion = 15.0;
 					};
@@ -177,11 +278,19 @@
 			projectRoot = "";
 			targets = (
 				A6000001000000000000001 /* ActivityMonitor */,
+				6CB7451D2EB7337B00A1BAB0 /* ActivityMonitorWidgetExtension */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		6CB7451C2EB7337B00A1BAB0 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		A9000001000000000000001 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -193,15 +302,25 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		6CB7451A2EB7337B00A1BAB0 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		A8000001000000000000001 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 				A1000001000000000000001 /* ActivityMonitorApp.swift in Sources */,
+				6CB744F62EB67AD200A1BAB0 /* NotificationManager.swift in Sources */,
+				6CB744F72EB67AD200A1BAB0 /* ActivityMonitorLiveActivity.swift in Sources */,
+				6CB744F82EB67AD200A1BAB0 /* BackgroundTaskManager.swift in Sources */,
+				6CB744F92EB67AD200A1BAB0 /* SharedDataManager.swift in Sources */,
 				A1000002000000000000001 /* ContentView.swift in Sources */,
 				A1000003000000000000001 /* DashboardView.swift in Sources */,
 				A1000004000000000000001 /* SettingsView.swift in Sources */,
-				A1000005000000000000001 /* PiPView.swift in Sources */,
 				A1000006000000000000001 /* ModernLineChartView.swift in Sources */,
 				A1000007000000000000001 /* ModernMetricCardView.swift in Sources */,
 				A1000008000000000000001 /* LineChartView.swift in Sources */,
@@ -216,7 +335,79 @@
 		};
 /* End PBXSourcesBuildPhase section */
 
+/* Begin PBXTargetDependency section */
+		6CB7452E2EB7337D00A1BAB0 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 6CB7451D2EB7337B00A1BAB0 /* ActivityMonitorWidgetExtension */;
+			targetProxy = 6CB7452D2EB7337D00A1BAB0 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
 /* Begin XCBuildConfiguration section */
+		6CB745322EB7337D00A1BAB0 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 95QV3KF6M3;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = ActivityMonitorWidget/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = ActivityMonitorWidget;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.activitymonitor.app.ActivityMonitorWidget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		6CB745332EB7337D00A1BAB0 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 95QV3KF6M3;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = ActivityMonitorWidget/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = ActivityMonitorWidget;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.activitymonitor.app.ActivityMonitorWidget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
 		AB000001000000000000001 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -407,6 +598,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		6CB745312EB7337D00A1BAB0 /* Build configuration list for PBXNativeTarget "ActivityMonitorWidgetExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				6CB745322EB7337D00A1BAB0 /* Debug */,
+				6CB745332EB7337D00A1BAB0 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		A7000001000000000000001 /* Build configuration list for PBXNativeTarget "ActivityMonitor" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (

@@ -7,12 +7,14 @@
 
 import Foundation
 import UserNotifications
+import Observation
 
+@Observable
 @MainActor
-class NotificationManager: ObservableObject {
+class NotificationManager {
     static let shared = NotificationManager()
 
-    @Published var notificationsEnabled = false
+    var notificationsEnabled = false
 
     // Threshold settings
     struct ThresholdSettings: Codable {
@@ -26,7 +28,7 @@ class NotificationManager: ObservableObject {
         var storageNotificationsEnabled = true
     }
 
-    @Published var thresholds = ThresholdSettings()
+    var thresholds = ThresholdSettings()
 
     private var lastNotificationTimes: [String: Date] = [:]
 

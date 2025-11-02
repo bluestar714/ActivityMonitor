@@ -14,6 +14,8 @@
 		6CB7451F2EB7337B00A1BAB0 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6CB745002EB7309B00A1BAB0 /* WidgetKit.framework */; };
 		6CB745202EB7337B00A1BAB0 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6CB745022EB7309B00A1BAB0 /* SwiftUI.framework */; };
 		6CB7452F2EB7337D00A1BAB0 /* ActivityMonitorWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 6CB7451E2EB7337B00A1BAB0 /* ActivityMonitorWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		6CB745342EB74A1100A1BAB0 /* MetricsData.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000010000000000000001 /* MetricsData.swift */; };
+		6CB745352EB74A4500A1BAB0 /* SharedDataManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6CB744F52EB67AD200A1BAB0 /* SharedDataManager.swift */; };
 		A1000001000000000000001 /* ActivityMonitorApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000001000000000000001 /* ActivityMonitorApp.swift */; };
 		A1000002000000000000001 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000002000000000000001 /* ContentView.swift */; };
 		A1000003000000000000001 /* DashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000003000000000000001 /* DashboardView.swift */; };
@@ -306,6 +308,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				6CB745352EB74A4500A1BAB0 /* SharedDataManager.swift in Sources */,
+				6CB745342EB74A1100A1BAB0 /* MetricsData.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

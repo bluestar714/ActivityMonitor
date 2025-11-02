@@ -109,24 +109,16 @@ class SharedDataManager {
         return userDefaults?.object(forKey: "lastUpdate") as? Date
     }
 
-    // MARK: - Settings
+    // MARK: - Clear Data
 
-    func saveSettings(_ settings: AppSettings) {
+    func clearAllData() {
         guard let defaults = userDefaults else { return }
 
-        let encoder = JSONEncoder()
-        if let encoded = try? encoder.encode(settings) {
-            defaults.set(encoded, forKey: "appSettings")
-        }
-    }
-
-    func loadSettings() -> AppSettings? {
-        guard let defaults = userDefaults,
-              let data = defaults.data(forKey: "appSettings") else {
-            return nil
-        }
-
-        let decoder = JSONDecoder()
-        return try? decoder.decode(AppSettings.self, from: data)
+        defaults.removeObject(forKey: "currentMetrics")
+        defaults.removeObject(forKey: "cpuHistory")
+        defaults.removeObject(forKey: "memoryHistory")
+        defaults.removeObject(forKey: "networkHistory")
+        defaults.removeObject(forKey: "storageHistory")
+        defaults.removeObject(forKey: "lastUpdate")
     }
 }

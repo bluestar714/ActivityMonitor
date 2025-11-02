@@ -40,7 +40,6 @@ class MetricsManager {
             network: networkHistory,
             storage: storageHistory
         )
-        sharedDataManager.saveSettings(settingsManager.settings)
     }
 
     // MARK: - Monitoring Control

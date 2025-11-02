@@ -168,6 +168,18 @@ struct StorageMetrics: Codable {
         return Double(used) / 1_073_741_824.0
     }
 
+    var freeSpaceGB: Double {
+        return freeGB
+    }
+
+    var totalSpaceGB: Double {
+        return totalGB
+    }
+
+    var usedSpaceGB: Double {
+        return usedGB
+    }
+
     static let zero = StorageMetrics(
         total: 0,
         used: 0,

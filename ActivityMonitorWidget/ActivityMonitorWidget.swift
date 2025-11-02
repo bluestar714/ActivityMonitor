@@ -311,34 +311,40 @@ struct ActivityMonitorWidget: Widget {
 
 extension MetricsSnapshot {
     static var placeholder: MetricsSnapshot {
-        MetricsSnapshot(
+        let gigabyte: UInt64 = 1_073_741_824
+
+        return MetricsSnapshot(
             cpu: CPUMetrics(
                 usage: 45.0,
-                userPercentage: 25.0,
-                systemPercentage: 15.0,
-                idlePercentage: 60.0
+                userTime: 25.0,
+                systemTime: 15.0,
+                idleTime: 60.0,
+                timestamp: Date()
             ),
             memory: MemoryMetrics(
-                totalGB: 6.0,
-                usedGB: 3.5,
-                freeGB: 2.5,
-                activeGB: 2.0,
-                inactiveGB: 1.0,
-                wiredGB: 0.5,
-                compressedGB: 0.0,
-                usagePercentage: 58.3
+                used: 3_758_096_384,      // 3.5 GB
+                total: 6_442_450_944,     // 6 GB
+                free: 2_684_354_560,      // 2.5 GB
+                active: 2_147_483_648,    // 2 GB
+                inactive: 1_073_741_824,  // 1 GB
+                wired: 536_870_912,       // 0.5 GB
+                compressed: 0,
+                timestamp: Date()
             ),
             network: NetworkMetrics(
-                downloadSpeedMBps: 2.4,
-                uploadSpeedMBps: 0.8,
-                totalDownloadedGB: 125.5,
-                totalUploadedGB: 45.2
+                bytesReceived: 134_826_188_800,  // 125.5 GB
+                bytesSent: 48_563_986_432,       // 45.2 GB
+                packetsReceived: 1_000_000,
+                packetsSent: 500_000,
+                downloadSpeed: 2_516_582.4,      // 2.4 MB/s
+                uploadSpeed: 838_860.8,          // 0.8 MB/s
+                timestamp: Date()
             ),
             storage: StorageMetrics(
-                totalSpaceGB: 128.0,
-                usedSpaceGB: 85.3,
-                freeSpaceGB: 42.7,
-                usagePercentage: 66.6
+                total: 137_438_953_472,     // 128 GB
+                used: 91_539_013_632,       // 85.3 GB
+                free: 45_899_939_840,       // 42.7 GB
+                timestamp: Date()
             ),
             timestamp: Date()
         )

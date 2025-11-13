@@ -82,6 +82,66 @@ struct SettingsView: View {
                         .font(.system(size: 13, design: .rounded))
                 }
 
+                // Display Section
+                Section {
+                    @Bindable var settings = settingsManager
+
+                    Toggle(isOn: $settings.settings.showDetailedCPU) {
+                        Label {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Detailed CPU View")
+                                    .font(.system(size: 16, weight: .medium, design: .rounded))
+                                Text("Show User/System separately")
+                                    .font(.system(size: 13, design: .rounded))
+                                    .foregroundStyle(.secondary)
+                            }
+                        } icon: {
+                            Image(systemName: "cpu")
+                                .foregroundStyle(.blue.gradient)
+                                .symbolRenderingMode(.multicolor)
+                                .font(.system(size: 20))
+                                .symbolEffect(.pulse, value: settings.settings.showDetailedCPU)
+                        }
+                    }
+                    .tint(.blue)
+                    .sensoryFeedback(.selection, trigger: settingsManager.settings.showDetailedCPU)
+                } header: {
+                    Text("Display Options")
+                        .font(.system(size: 13, weight: .semibold, design: .rounded))
+                } footer: {
+                    Text("When enabled, CPU metric shows User and System usage separately. Tap the CPU card to quickly toggle this setting.")
+                        .font(.system(size: 13, design: .rounded))
+                }
+
+                // Widget Display Section
+                Section {
+                    @Bindable var settings = settingsManager
+
+                    Picker("First Metric", selection: $settings.settings.widgetMetric1) {
+                        ForEach(MetricType.allCases, id: \.self) { metric in
+                            Label(metric.rawValue, systemImage: metric.icon)
+                                .tag(metric)
+                        }
+                    }
+                    .pickerStyle(.menu)
+                    .sensoryFeedback(.selection, trigger: settingsManager.settings.widgetMetric1)
+
+                    Picker("Second Metric", selection: $settings.settings.widgetMetric2) {
+                        ForEach(MetricType.allCases, id: \.self) { metric in
+                            Label(metric.rawValue, systemImage: metric.icon)
+                                .tag(metric)
+                        }
+                    }
+                    .pickerStyle(.menu)
+                    .sensoryFeedback(.selection, trigger: settingsManager.settings.widgetMetric2)
+                } header: {
+                    Text("Widget Display")
+                        .font(.system(size: 13, weight: .semibold, design: .rounded))
+                } footer: {
+                    Text("Choose which two metrics to display in home screen widgets. Changes apply to all widget sizes.")
+                        .font(.system(size: 13, design: .rounded))
+                }
+
                 // Actions Section
                 Section {
                     Button(role: .destructive, action: {

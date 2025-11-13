@@ -22,12 +22,19 @@ class SharedDataManager {
     // MARK: - Save Metrics
 
     func saveCurrentMetrics(_ metrics: MetricsSnapshot) {
-        guard let defaults = userDefaults else { return }
+        guard let defaults = userDefaults else {
+            print("❌ [SharedDataManager] UserDefaults for app group is nil!")
+            return
+        }
 
         let encoder = JSONEncoder()
         if let encoded = try? encoder.encode(metrics) {
             defaults.set(encoded, forKey: "currentMetrics")
             defaults.set(Date(), forKey: "lastUpdate")
+            defaults.synchronize() // Force save
+            print("✅ [SharedDataManager] Saved metrics - CPU: \(Int(metrics.cpu.usage))%, Memory: \(Int(metrics.memory.usagePercentage))%")
+        } else {
+            print("❌ [SharedDataManager] Failed to encode metrics")
         }
     }
 
@@ -56,13 +63,28 @@ class SharedDataManager {
     // MARK: - Load Metrics
 
     func loadCurrentMetrics() -> MetricsSnapshot? {
-        guard let defaults = userDefaults,
-              let data = defaults.data(forKey: "currentMetrics") else {
+        guard let defaults = userDefaults else {
+            print("❌ [SharedDataManager] UserDefaults for app group is nil when loading!")
+            return nil
+        }
+
+        guard let data = defaults.data(forKey: "currentMetrics") else {
+            print("⚠️ [SharedDataManager] No data found for currentMetrics")
             return nil
         }
 
         let decoder = JSONDecoder()
-        return try? decoder.decode(MetricsSnapshot.self, from: data)
+        if let metrics = try? decoder.decode(MetricsSnapshot.self, from: data) {
+            print("✅ [SharedDataManager] Loaded metrics - CPU: \(Int(metrics.cpu.usage))%, Memory: \(Int(metrics.memory.usagePercentage))%")
+            if let lastUpdate = defaults.object(forKey: "lastUpdate") as? Date {
+                let age = Date().timeIntervalSince(lastUpdate)
+                print("📅 [SharedDataManager] Data age: \(Int(age)) seconds")
+            }
+            return metrics
+        } else {
+            print("❌ [SharedDataManager] Failed to decode metrics data")
+            return nil
+        }
     }
 
     func loadCPUHistory() -> [CPUMetrics] {
@@ -107,6 +129,35 @@ class SharedDataManager {
 
     func getLastUpdateDate() -> Date? {
         return userDefaults?.object(forKey: "lastUpdate") as? Date
+    }
+
+    // MARK: - Widget Settings
+
+    func saveWidgetSettings(metric1: MetricType, metric2: MetricType) {
+        guard let defaults = userDefaults else { return }
+
+        defaults.set(metric1.rawValue, forKey: "widgetMetric1")
+        defaults.set(metric2.rawValue, forKey: "widgetMetric2")
+        defaults.synchronize()
+
+        print("✅ [SharedDataManager] Saved widget settings - Metric 1: \(metric1.rawValue), Metric 2: \(metric2.rawValue)")
+    }
+
+    func loadWidgetSettings() -> (MetricType, MetricType) {
+        guard let defaults = userDefaults else {
+            print("⚠️ [SharedDataManager] UserDefaults nil, using default widget settings")
+            return (.cpu, .memory)
+        }
+
+        let metric1String = defaults.string(forKey: "widgetMetric1") ?? "CPU"
+        let metric2String = defaults.string(forKey: "widgetMetric2") ?? "Memory"
+
+        let metric1 = MetricType(rawValue: metric1String) ?? .cpu
+        let metric2 = MetricType(rawValue: metric2String) ?? .memory
+
+        print("✅ [SharedDataManager] Loaded widget settings - Metric 1: \(metric1.rawValue), Metric 2: \(metric2.rawValue)")
+
+        return (metric1, metric2)
     }
 
     // MARK: - Clear Data

@@ -19,27 +19,41 @@ struct MetricsProvider: TimelineProvider {
     }
 
     func getSnapshot(in context: Context, completion: @escaping (MetricsEntry) -> ()) {
+        let loadedMetrics = SharedDataManager.shared.loadCurrentMetrics()
         let entry = MetricsEntry(
             date: Date(),
-            metrics: SharedDataManager.shared.loadCurrentMetrics() ?? .placeholder
+            metrics: loadedMetrics ?? .placeholder
         )
+
+        if loadedMetrics == nil {
+            print("⚠️ [Widget] Using placeholder data in snapshot")
+        } else {
+            print("✅ [Widget] Using real data in snapshot")
+        }
+
         completion(entry)
     }
 
     func getTimeline(in context: Context, completion: @escaping (Timeline<Entry>) -> ()) {
         let currentDate = Date()
-        let metrics = SharedDataManager.shared.loadCurrentMetrics() ?? .placeholder
+        let loadedMetrics = SharedDataManager.shared.loadCurrentMetrics()
+        let metrics = loadedMetrics ?? .placeholder
 
-        // Create entries for the next hour, updating every minute
-        var entries: [MetricsEntry] = []
-        for minuteOffset in 0..<60 {
-            let entryDate = Calendar.current.date(byAdding: .minute, value: minuteOffset, to: currentDate)!
-            let entry = MetricsEntry(date: entryDate, metrics: metrics)
-            entries.append(entry)
+        if loadedMetrics == nil {
+            print("⚠️ [Widget Timeline] No data available, using placeholder")
+        } else {
+            let cpuTotal = metrics.cpu.userTime + metrics.cpu.systemTime
+            print("✅ [Widget Timeline] Using real data - CPU: \(Int(cpuTotal))% (User: \(Int(metrics.cpu.userTime))%, System: \(Int(metrics.cpu.systemTime))%), Memory: \(Int(metrics.memory.usagePercentage))%")
         }
 
-        // Update timeline every minute
-        let timeline = Timeline(entries: entries, policy: .atEnd)
+        // Create a single entry with current data
+        let entry = MetricsEntry(date: currentDate, metrics: metrics)
+
+        // Schedule next update in 1 minute
+        let nextUpdate = Calendar.current.date(byAdding: .minute, value: 1, to: currentDate)!
+        let timeline = Timeline(entries: [entry], policy: .after(nextUpdate))
+
+        print("📅 [Widget Timeline] Next update scheduled at: \(nextUpdate)")
         completion(timeline)
     }
 }
@@ -58,146 +72,200 @@ struct ActivityMonitorWidgetEntryView: View {
     var entry: MetricsProvider.Entry
 
     var body: some View {
+        let (metric1, metric2) = SharedDataManager.shared.loadWidgetSettings()
+
         switch family {
         case .systemSmall:
-            SmallWidgetView(metrics: entry.metrics, date: entry.date)
+            CompactTwoMetricsView(metrics: entry.metrics, metric1: metric1, metric2: metric2, date: entry.date)
         case .systemMedium:
-            MediumWidgetView(metrics: entry.metrics, date: entry.date)
+            MediumTwoMetricsView(metrics: entry.metrics, metric1: metric1, metric2: metric2, date: entry.date)
         case .systemLarge:
-            LargeWidgetView(metrics: entry.metrics, date: entry.date)
+            LargeTwoMetricsView(metrics: entry.metrics, metric1: metric1, metric2: metric2, date: entry.date)
         default:
-            SmallWidgetView(metrics: entry.metrics, date: entry.date)
+            CompactTwoMetricsView(metrics: entry.metrics, metric1: metric1, metric2: metric2, date: entry.date)
         }
     }
 }
 
-// Small Widget: Shows CPU and Memory
-struct SmallWidgetView: View {
+// MARK: - Compact View (Small Widget)
+
+struct CompactTwoMetricsView: View {
     let metrics: MetricsSnapshot
+    let metric1: MetricType
+    let metric2: MetricType
     let date: Date
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 10) {
+            // Header
             Label("Activity Monitor", systemImage: "chart.xyaxis.line")
                 .font(.caption2.bold())
                 .foregroundStyle(.secondary)
 
-            VStack(alignment: .leading, spacing: 8) {
-                // CPU
-                HStack {
-                    Label("CPU", systemImage: "cpu")
-                        .font(.caption)
-                        .foregroundStyle(.blue)
-                    Spacer()
-                    Text("\(Int(metrics.cpu.usage))%")
-                        .font(.headline.bold())
-                        .foregroundStyle(.blue)
-                }
+            // Metric 1
+            metricRow(for: metric1)
 
-                // Memory
-                HStack {
-                    Label("Memory", systemImage: "memorychip")
-                        .font(.caption)
-                        .foregroundStyle(.green)
-                    Spacer()
-                    Text("\(Int(metrics.memory.usagePercentage))%")
-                        .font(.headline.bold())
-                        .foregroundStyle(.green)
-                }
-            }
+            // Metric 2
+            metricRow(for: metric2)
 
             Spacer()
 
+            // Timestamp
             Text(date, style: .time)
                 .font(.caption2)
                 .foregroundStyle(.tertiary)
         }
         .padding()
     }
-}
 
-// Medium Widget: Shows CPU, Memory, and Network
-struct MediumWidgetView: View {
-    let metrics: MetricsSnapshot
-    let date: Date
-
-    var body: some View {
-        HStack(spacing: 16) {
-            VStack(alignment: .leading, spacing: 8) {
-                Label("Activity Monitor", systemImage: "chart.xyaxis.line")
-                    .font(.caption.bold())
-                    .foregroundStyle(.secondary)
-
-                Spacer()
-
-                // CPU
-                VStack(alignment: .leading, spacing: 4) {
-                    Label("CPU", systemImage: "cpu")
-                        .font(.caption2)
-                        .foregroundStyle(.blue)
-                    Text("\(Int(metrics.cpu.usage))%")
-                        .font(.title2.bold())
-                        .foregroundStyle(.blue)
-                }
-
-                // Memory
-                VStack(alignment: .leading, spacing: 4) {
-                    Label("Memory", systemImage: "memorychip")
-                        .font(.caption2)
-                        .foregroundStyle(.green)
-                    Text("\(Int(metrics.memory.usagePercentage))%")
-                        .font(.title2.bold())
-                        .foregroundStyle(.green)
-                }
-
-                Spacer()
-
-                Text(date, style: .time)
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
-            }
-
-            Divider()
-
-            VStack(alignment: .leading, spacing: 8) {
-                // Network
-                VStack(alignment: .leading, spacing: 4) {
-                    Label("Network", systemImage: "arrow.down.circle")
-                        .font(.caption2)
-                        .foregroundStyle(.purple)
-                    Text(String(format: "%.1f MB/s", metrics.network.downloadSpeedMBps))
-                        .font(.title3.bold())
-                        .foregroundStyle(.purple)
-                }
-
-                Spacer()
-
-                // Storage
-                VStack(alignment: .leading, spacing: 4) {
-                    Label("Storage", systemImage: "internaldrive")
-                        .font(.caption2)
-                        .foregroundStyle(.orange)
-                    Text(String(format: "%.1f GB free", metrics.storage.freeSpaceGB))
-                        .font(.caption.bold())
-                        .foregroundStyle(.orange)
-                }
-            }
+    @ViewBuilder
+    private func metricRow(for type: MetricType) -> some View {
+        HStack {
+            Label(type.rawValue, systemImage: type.icon)
+                .font(.caption)
+                .foregroundStyle(colorFor(type))
+            Spacer()
+            Text(valueString(for: type))
+                .font(.headline.bold())
+                .foregroundStyle(colorFor(type))
         }
-        .padding()
+    }
+
+    private func valueString(for type: MetricType) -> String {
+        switch type {
+        case .cpu:
+            return "\(Int(metrics.cpu.userTime + metrics.cpu.systemTime))%"
+        case .memory:
+            return "\(Int(metrics.memory.usagePercentage))%"
+        case .network:
+            return String(format: "%.1f MB/s", metrics.network.downloadSpeedMBps)
+        case .storage:
+            return String(format: "%.1f GB", metrics.storage.freeSpaceGB)
+        }
+    }
+
+    private func colorFor(_ type: MetricType) -> Color {
+        switch type {
+        case .cpu: return .blue
+        case .memory: return .green
+        case .network: return .purple
+        case .storage: return .orange
+        }
     }
 }
 
-// Large Widget: Shows all metrics
-struct LargeWidgetView: View {
+// MARK: - Medium View (Medium Widget)
+
+struct MediumTwoMetricsView: View {
     let metrics: MetricsSnapshot
+    let metric1: MetricType
+    let metric2: MetricType
     let date: Date
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        HStack(spacing: 20) {
+            // Metric 1
+            metricColumn(for: metric1)
+
+            Divider()
+
+            // Metric 2
+            metricColumn(for: metric2)
+        }
+        .padding()
+    }
+
+    @ViewBuilder
+    private func metricColumn(for type: MetricType) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            // Icon and label
+            Label(type.rawValue, systemImage: type.icon)
+                .font(.caption.bold())
+                .foregroundStyle(colorFor(type))
+                .symbolRenderingMode(.multicolor)
+
+            Spacer()
+
+            // Large value
+            Text(valueString(for: type))
+                .font(.system(size: 32, weight: .bold, design: .rounded))
+                .foregroundStyle(colorFor(type))
+                .minimumScaleFactor(0.5)
+                .lineLimit(1)
+
+            // Subtitle
+            Text(subtitleString(for: type))
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+
+            Spacer()
+
+            // Timestamp
+            Text(date, style: .time)
+                .font(.caption2)
+                .foregroundStyle(.tertiary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func valueString(for type: MetricType) -> String {
+        switch type {
+        case .cpu:
+            return "\(Int(metrics.cpu.userTime + metrics.cpu.systemTime))%"
+        case .memory:
+            return "\(Int(metrics.memory.usagePercentage))%"
+        case .network:
+            let speed = metrics.network.downloadSpeedMBps
+            if speed >= 1.0 {
+                return String(format: "%.1f", speed)
+            } else {
+                return String(format: "%.0f", speed * 1024)
+            }
+        case .storage:
+            return String(format: "%.1f", metrics.storage.freeSpaceGB)
+        }
+    }
+
+    private func subtitleString(for type: MetricType) -> String {
+        switch type {
+        case .cpu:
+            return "User+System"
+        case .memory:
+            return String(format: "%.1f/%.1f GB", metrics.memory.usedGB, metrics.memory.totalGB)
+        case .network:
+            let speed = metrics.network.downloadSpeedMBps
+            return speed >= 1.0 ? "MB/s" : "KB/s"
+        case .storage:
+            return "GB free"
+        }
+    }
+
+    private func colorFor(_ type: MetricType) -> Color {
+        switch type {
+        case .cpu: return .blue
+        case .memory: return .green
+        case .network: return .purple
+        case .storage: return .orange
+        }
+    }
+}
+
+// MARK: - Large View (Large Widget)
+
+struct LargeTwoMetricsView: View {
+    let metrics: MetricsSnapshot
+    let metric1: MetricType
+    let metric2: MetricType
+    let date: Date
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
             // Header
             HStack {
                 Label("Activity Monitor", systemImage: "chart.xyaxis.line")
                     .font(.headline.bold())
+                    .symbolRenderingMode(.multicolor)
                 Spacer()
                 Text(date, style: .time)
                     .font(.caption)
@@ -206,82 +274,95 @@ struct LargeWidgetView: View {
 
             Divider()
 
-            // CPU Section
-            VStack(alignment: .leading, spacing: 8) {
-                HStack {
-                    Label("CPU Usage", systemImage: "cpu")
-                        .font(.callout.bold())
-                        .foregroundStyle(.blue)
-                    Spacer()
-                    Text("\(Int(metrics.cpu.usage))%")
-                        .font(.title.bold())
-                        .foregroundStyle(.blue)
-                }
-
-                HStack {
-                    Text("User: \(Int(metrics.cpu.userPercentage))%")
-                    Text("System: \(Int(metrics.cpu.systemPercentage))%")
-                    Text("Idle: \(Int(metrics.cpu.idlePercentage))%")
-                }
-                .font(.caption2)
-                .foregroundStyle(.secondary)
-            }
+            // Metric 1 Section
+            metricDetailSection(for: metric1)
 
             Divider()
 
-            // Memory Section
-            VStack(alignment: .leading, spacing: 8) {
-                HStack {
-                    Label("Memory", systemImage: "memorychip")
-                        .font(.callout.bold())
-                        .foregroundStyle(.green)
-                    Spacer()
-                    Text("\(Int(metrics.memory.usagePercentage))%")
-                        .font(.title.bold())
-                        .foregroundStyle(.green)
-                }
+            // Metric 2 Section
+            metricDetailSection(for: metric2)
 
-                HStack {
-                    Text("Used: \(String(format: "%.1f", metrics.memory.usedGB)) GB")
-                    Spacer()
-                    Text("Free: \(String(format: "%.1f", metrics.memory.freeGB)) GB")
-                }
-                .font(.caption2)
-                .foregroundStyle(.secondary)
-            }
+            Spacer()
+        }
+        .padding()
+    }
 
-            Divider()
-
-            // Network & Storage
-            HStack(spacing: 20) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Label("Network", systemImage: "arrow.down.circle")
-                        .font(.caption.bold())
-                        .foregroundStyle(.purple)
-                    Text(String(format: "↓ %.1f MB/s", metrics.network.downloadSpeedMBps))
-                        .font(.callout.bold())
-                        .foregroundStyle(.purple)
-                    Text(String(format: "↑ %.1f MB/s", metrics.network.uploadSpeedMBps))
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-
+    @ViewBuilder
+    private func metricDetailSection(for type: MetricType) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            // Main value
+            HStack(alignment: .firstTextBaseline) {
+                Label(type.rawValue, systemImage: type.icon)
+                    .font(.title3.bold())
+                    .foregroundStyle(colorFor(type))
+                    .symbolRenderingMode(.multicolor)
                 Spacer()
+                Text(mainValueString(for: type))
+                    .font(.system(size: 40, weight: .bold, design: .rounded))
+                    .foregroundStyle(colorFor(type))
+                    .minimumScaleFactor(0.5)
+                    .lineLimit(1)
+            }
 
-                VStack(alignment: .leading, spacing: 4) {
-                    Label("Storage", systemImage: "internaldrive")
-                        .font(.caption.bold())
-                        .foregroundStyle(.orange)
-                    Text(String(format: "%.1f GB free", metrics.storage.freeSpaceGB))
-                        .font(.callout.bold())
-                        .foregroundStyle(.orange)
-                    Text("\(Int(metrics.storage.usagePercentage))% used")
+            // Detail breakdown
+            HStack(spacing: 12) {
+                ForEach(detailStrings(for: type), id: \.self) { detail in
+                    Text(detail)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
             }
         }
-        .padding()
+    }
+
+    private func mainValueString(for type: MetricType) -> String {
+        switch type {
+        case .cpu:
+            return "\(Int(metrics.cpu.userTime + metrics.cpu.systemTime))%"
+        case .memory:
+            return "\(Int(metrics.memory.usagePercentage))%"
+        case .network:
+            return String(format: "%.1f MB/s", metrics.network.downloadSpeedMBps)
+        case .storage:
+            return String(format: "%.1f GB", metrics.storage.freeSpaceGB)
+        }
+    }
+
+    private func detailStrings(for type: MetricType) -> [String] {
+        switch type {
+        case .cpu:
+            return [
+                "User: \(Int(metrics.cpu.userTime))%",
+                "System: \(Int(metrics.cpu.systemTime))%",
+                "Idle: \(Int(metrics.cpu.idleTime))%"
+            ]
+        case .memory:
+            return [
+                "Used: \(String(format: "%.1f", metrics.memory.usedGB)) GB",
+                "Free: \(String(format: "%.1f", metrics.memory.freeGB)) GB",
+                "Total: \(String(format: "%.1f", metrics.memory.totalGB)) GB"
+            ]
+        case .network:
+            return [
+                "Download: \(String(format: "%.1f", metrics.network.downloadSpeedMBps)) MB/s",
+                "Upload: \(String(format: "%.1f", metrics.network.uploadSpeedMBps)) MB/s"
+            ]
+        case .storage:
+            return [
+                "Used: \(String(format: "%.1f", metrics.storage.usedSpaceGB)) GB",
+                "Free: \(String(format: "%.1f", metrics.storage.freeSpaceGB)) GB",
+                "\(Int(metrics.storage.usagePercentage))% full"
+            ]
+        }
+    }
+
+    private func colorFor(_ type: MetricType) -> Color {
+        switch type {
+        case .cpu: return .blue
+        case .memory: return .green
+        case .network: return .purple
+        case .storage: return .orange
+        }
     }
 }
 

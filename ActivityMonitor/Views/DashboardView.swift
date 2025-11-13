@@ -19,7 +19,7 @@ struct DashboardView: View {
                 if settingsManager.isMetricEnabled(.cpu) {
                     ModernMetricCardView(
                         type: .cpu,
-                        currentValue: String(format: "%.1f%%", metricsManager.currentMetrics.cpu.usage),
+                        currentValue: cpuCurrentValue,
                         subtitle: cpuSubtitle,
                         data: metricsManager.getHistory(for: .cpu),
                         maxValue: 100,
@@ -30,6 +30,12 @@ struct DashboardView: View {
                         removal: .scale(scale: 0.9).combined(with: .opacity)
                     ))
                     .id("cpu")
+                    .onTapGesture {
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                            settingsManager.settings.showDetailedCPU.toggle()
+                        }
+                    }
+                    .sensoryFeedback(.selection, trigger: settingsManager.settings.showDetailedCPU)
                 }
 
                 // Memory Metric
@@ -98,9 +104,29 @@ struct DashboardView: View {
 
     // MARK: - Computed Properties
 
+    private var cpuCurrentValue: String {
+        let cpu = metricsManager.currentMetrics.cpu
+
+        if settingsManager.settings.showDetailedCPU {
+            // Show User and System separately
+            return String(format: "%.1f%% / %.1f%%", cpu.userTime, cpu.systemTime)
+        } else {
+            // Show total (User + System)
+            let total = cpu.userTime + cpu.systemTime
+            return String(format: "%.1f%%", total)
+        }
+    }
+
     private var cpuSubtitle: String {
         let cpu = metricsManager.currentMetrics.cpu
-        return String(format: "User: %.1f%% • System: %.1f%%", cpu.userTime, cpu.systemTime)
+
+        if settingsManager.settings.showDetailedCPU {
+            // Show Idle when in detailed mode
+            return String(format: "User / System • Idle: %.1f%%", cpu.idleTime)
+        } else {
+            // Show breakdown when in total mode
+            return String(format: "User: %.1f%% • System: %.1f%% • Tap for details", cpu.userTime, cpu.systemTime)
+        }
     }
 
     private var memorySubtitle: String {

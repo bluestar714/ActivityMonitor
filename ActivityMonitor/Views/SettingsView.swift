@@ -142,6 +142,26 @@ struct SettingsView: View {
                         .font(.system(size: 13, design: .rounded))
                 }
 
+                // Picture-in-Picture Display Section
+                Section {
+                    @Bindable var settings = settingsManager
+
+                    Picker("Metric", selection: $settings.settings.pipMetric) {
+                        ForEach(MetricType.allCases, id: \.self) { metric in
+                            Label(metric.rawValue, systemImage: metric.icon)
+                                .tag(metric)
+                        }
+                    }
+                    .pickerStyle(.menu)
+                    .sensoryFeedback(.selection, trigger: settingsManager.settings.pipMetric)
+                } header: {
+                    Text("Picture-in-Picture Display")
+                        .font(.system(size: 13, weight: .semibold, design: .rounded))
+                } footer: {
+                    Text("Choose which metric to display when using Picture-in-Picture mode.")
+                        .font(.system(size: 13, design: .rounded))
+                }
+
                 // Actions Section
                 Section {
                     Button(role: .destructive, action: {

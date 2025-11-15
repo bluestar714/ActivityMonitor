@@ -43,8 +43,9 @@ class LiveActivityManager: ObservableObject {
         }
 
         let attributes = ActivityMonitorAttributes(startTime: Date())
+        let cpuTotal = metrics.cpu.userTime + metrics.cpu.systemTime
         let contentState = ActivityMonitorAttributes.ContentState(
-            cpuUsage: metrics.cpu.usage,
+            cpuUsage: cpuTotal,
             memoryUsage: metrics.memory.usagePercentage,
             networkSpeed: metrics.network.downloadSpeedMBps,
             timestamp: Date()
@@ -68,8 +69,9 @@ class LiveActivityManager: ObservableObject {
     func updateLiveActivity(with metrics: MetricsSnapshot) {
         guard let activity = currentActivity else { return }
 
+        let cpuTotal = metrics.cpu.userTime + metrics.cpu.systemTime
         let contentState = ActivityMonitorAttributes.ContentState(
-            cpuUsage: metrics.cpu.usage,
+            cpuUsage: cpuTotal,
             memoryUsage: metrics.memory.usagePercentage,
             networkSpeed: metrics.network.downloadSpeedMBps,
             timestamp: Date()

@@ -7,6 +7,7 @@
 
 import Foundation
 import Observation
+import WidgetKit
 
 @Observable
 @MainActor
@@ -40,6 +41,9 @@ class MetricsManager {
             network: networkHistory,
             storage: storageHistory
         )
+
+        // Tell all widgets to reload their timelines with new data
+        WidgetCenter.shared.reloadAllTimelines()
     }
 
     // MARK: - Monitoring Control

@@ -7,18 +7,25 @@
 
 import Foundation
 import Observation
+import WidgetKit
 
 struct AppSettings: Codable {
     var enabledMetrics: Set<MetricType>
     var refreshInterval: TimeInterval // In seconds
     var historyDuration: TimeInterval // How long to keep data
     var maxDataPoints: Int
+    var showDetailedCPU: Bool // Show User/System breakdown instead of total
+    var widgetMetric1: MetricType // First metric to show in widget
+    var widgetMetric2: MetricType // Second metric to show in widget
 
     static let `default` = AppSettings(
         enabledMetrics: Set(MetricType.allCases),
         refreshInterval: 1.0,
         historyDuration: 300.0, // 5 minutes
-        maxDataPoints: 300
+        maxDataPoints: 300,
+        showDetailedCPU: false, // Default to total view
+        widgetMetric1: .cpu, // Default to CPU
+        widgetMetric2: .memory // Default to Memory
     )
 }
 
@@ -30,6 +37,7 @@ class SettingsManager {
     var settings: AppSettings {
         didSet {
             saveSettings()
+            saveWidgetSettings()
         }
     }
 
@@ -42,12 +50,25 @@ class SettingsManager {
         } else {
             self.settings = .default
         }
+
+        // Also save widget settings to App Groups on init
+        saveWidgetSettings()
     }
 
     private func saveSettings() {
         if let encoded = try? JSONEncoder().encode(settings) {
             UserDefaults.standard.set(encoded, forKey: settingsKey)
         }
+    }
+
+    private func saveWidgetSettings() {
+        SharedDataManager.shared.saveWidgetSettings(
+            metric1: settings.widgetMetric1,
+            metric2: settings.widgetMetric2
+        )
+
+        // Reload all widgets to reflect the new settings
+        WidgetCenter.shared.reloadAllTimelines()
     }
 
     func isMetricEnabled(_ type: MetricType) -> Bool {

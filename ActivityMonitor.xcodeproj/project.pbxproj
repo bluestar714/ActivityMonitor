@@ -30,6 +30,10 @@
 		A1000013000000000000001 /* MetricsManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000013000000000000001 /* MetricsManager.swift */; };
 		A1000014000000000000001 /* FormatHelpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000014000000000000001 /* FormatHelpers.swift */; };
 		A1000015000000000000001 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A2000015000000000000001 /* Assets.xcassets */; };
+		A1000020000000000000001 /* GraphRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000020000000000000001 /* GraphRenderer.swift */; };
+		A1000021000000000000001 /* PictureInPictureManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000021000000000000001 /* PictureInPictureManager.swift */; };
+		A1000022000000000000001 /* PiPVideoLayerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000022000000000000001 /* PiPVideoLayerView.swift */; };
+		A1000023000000000000001 /* PiPMetricsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000023000000000000001 /* PiPMetricsView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -80,6 +84,10 @@
 		A2000015000000000000001 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		A2000016000000000000001 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		A2000017000000000000001 /* ActivityMonitor-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "ActivityMonitor-Bridging-Header.h"; sourceTree = "<group>"; };
+		A2000020000000000000001 /* GraphRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GraphRenderer.swift; sourceTree = "<group>"; };
+		A2000021000000000000001 /* PictureInPictureManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PictureInPictureManager.swift; sourceTree = "<group>"; };
+		A2000022000000000000001 /* PiPVideoLayerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PiPVideoLayerView.swift; sourceTree = "<group>"; };
+		A2000023000000000000001 /* PiPMetricsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PiPMetricsView.swift; sourceTree = "<group>"; };
 		A3000001000000000000001 /* ActivityMonitor.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ActivityMonitor.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -170,6 +178,8 @@
 				A2000007000000000000001 /* ModernMetricCardView.swift */,
 				A2000008000000000000001 /* LineChartView.swift */,
 				A2000009000000000000001 /* MetricCardView.swift */,
+				A2000022000000000000001 /* PiPVideoLayerView.swift */,
+				A2000023000000000000001 /* PiPMetricsView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -192,6 +202,8 @@
 				6CB744F32EB67AD200A1BAB0 /* BackgroundTaskManager.swift */,
 				6CB744F42EB67AD200A1BAB0 /* NotificationManager.swift */,
 				6CB744F52EB67AD200A1BAB0 /* SharedDataManager.swift */,
+				A2000020000000000000001 /* GraphRenderer.swift */,
+				A2000021000000000000001 /* PictureInPictureManager.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -334,6 +346,10 @@
 				A1000012000000000000001 /* SystemMetricsCollector.swift in Sources */,
 				A1000013000000000000001 /* MetricsManager.swift in Sources */,
 				A1000014000000000000001 /* FormatHelpers.swift in Sources */,
+				A1000020000000000000001 /* GraphRenderer.swift in Sources */,
+				A1000021000000000000001 /* PictureInPictureManager.swift in Sources */,
+				A1000022000000000000001 /* PiPVideoLayerView.swift in Sources */,
+				A1000023000000000000001 /* PiPMetricsView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -354,7 +370,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 100;
 				DEVELOPMENT_TEAM = 95QV3KF6M3;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = ActivityMonitorWidget/Info.plist;
@@ -386,7 +402,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 100;
 				DEVELOPMENT_TEAM = 95QV3KF6M3;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = ActivityMonitorWidget/Info.plist;

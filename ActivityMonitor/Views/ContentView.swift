@@ -13,6 +13,7 @@ struct ContentView: View {
     @Environment(SettingsManager.self) private var settingsManager
     @State private var showingSettings = false
     @State private var liveActivityActive = false
+    @State private var pipManager = PictureInPictureManager.shared
 
     var body: some View {
         NavigationStack {
@@ -21,21 +22,39 @@ struct ContentView: View {
                 .navigationBarTitleDisplayMode(.large)
                 .toolbar {
                     ToolbarItem(placement: .topBarLeading) {
-                        // Live Activity Button (iOS 16.1+)
-                        if #available(iOS 16.1, *) {
+                        HStack(spacing: 8) {
+                            // Live Activity Button (iOS 16.1+)
+                            if #available(iOS 16.1, *) {
+                                Button {
+                                    toggleLiveActivity()
+                                } label: {
+                                    Label(
+                                        liveActivityActive ? "Stop Live Activity" : "Start Live Activity",
+                                        systemImage: liveActivityActive ? "livephoto.slash" : "livephoto"
+                                    )
+                                    .symbolRenderingMode(.multicolor)
+                                }
+                                .buttonStyle(.bordered)
+                                .buttonBorderShape(.capsule)
+                                .tint(liveActivityActive ? .red : .purple)
+                                .sensoryFeedback(.selection, trigger: liveActivityActive)
+                            }
+
+                            // Picture-in-Picture Button
                             Button {
-                                toggleLiveActivity()
+                                togglePiP()
                             } label: {
                                 Label(
-                                    liveActivityActive ? "Stop Live Activity" : "Start Live Activity",
-                                    systemImage: liveActivityActive ? "livephoto.slash" : "livephoto"
+                                    pipManager.isPiPActive ? "Stop PiP" : "Start PiP",
+                                    systemImage: pipManager.isPiPActive ? "pip.exit" : "pip.enter"
                                 )
-                                .symbolRenderingMode(.multicolor)
+                                .symbolRenderingMode(.monochrome)
                             }
                             .buttonStyle(.bordered)
                             .buttonBorderShape(.capsule)
-                            .tint(liveActivityActive ? .red : .purple)
-                            .sensoryFeedback(.selection, trigger: liveActivityActive)
+                            .tint(pipManager.isPiPActive ? .red : .cyan)
+                            .disabled(!pipManager.isPiPPossible)
+                            .sensoryFeedback(.selection, trigger: pipManager.isPiPActive)
                         }
                     }
 
@@ -77,6 +96,16 @@ struct ContentView: View {
                 liveActivityManager.startLiveActivity(with: metricsManager.currentMetrics)
                 liveActivityActive = true
             }
+        }
+    }
+
+    // MARK: - Picture-in-Picture Control
+
+    private func togglePiP() {
+        if pipManager.isPiPActive {
+            pipManager.stopPiP()
+        } else {
+            pipManager.startPiP()
         }
     }
 }

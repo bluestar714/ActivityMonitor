@@ -11,9 +11,12 @@ import SwiftUI
 struct DashboardView: View {
     @Environment(MetricsManager.self) private var metricsManager
     @Environment(SettingsManager.self) private var settingsManager
+    @State private var pipManager = PictureInPictureManager.shared
 
     var body: some View {
-        ScrollView {
+        ZStack(alignment: .bottomTrailing) {
+            // Main content
+            ScrollView {
             VStack(spacing: 18) {
                 // CPU Metric
                 if settingsManager.isMetricEnabled(.cpu) {
@@ -91,15 +94,31 @@ struct DashboardView: View {
             }
             .padding(20)
             .animation(.spring(response: 0.5, dampingFraction: 0.75, blendDuration: 0.3), value: settingsManager.settings.enabledMetrics)
+            }
+            .background {
+                Color(.systemGroupedBackground)
+                    .ignoresSafeArea()
+            }
+            .refreshable {
+                await refreshMetrics()
+            }
+            .sensoryFeedback(.success, trigger: metricsManager.currentMetrics.timestamp)
+
+            // PiP Video Layer (hidden, used only for PiP functionality)
+            PiPVideoLayerView { layer in
+                // Setup PiP with a small delay to ensure everything is ready
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    pipManager.setup(
+                        with: layer,
+                        metricsManager: metricsManager,
+                        settingsManager: settingsManager
+                    )
+                }
+            }
+            .frame(width: 1, height: 1)
+            .opacity(0.01)
+            .allowsHitTesting(false)
         }
-        .background {
-            Color(.systemGroupedBackground)
-                .ignoresSafeArea()
-        }
-        .refreshable {
-            await refreshMetrics()
-        }
-        .sensoryFeedback(.success, trigger: metricsManager.currentMetrics.timestamp)
     }
 
     // MARK: - Computed Properties

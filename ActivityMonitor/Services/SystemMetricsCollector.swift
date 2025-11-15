@@ -12,13 +12,14 @@ class SystemMetricsCollector {
 
     // MARK: - CPU Metrics
 
+    // Store previous CPU info for delta calculation
+    private var previousCPUInfo: (user: UInt32, system: UInt32, idle: UInt32, nice: UInt32)?
+    private let cpuLock = NSLock()
+
     func collectCPUMetrics() -> CPUMetrics {
         var cpuInfo: processor_info_array_t!
-        var prevCpuInfo: processor_info_array_t?
         var numCpuInfo: mach_msg_type_number_t = 0
-        var numPrevCpuInfo: mach_msg_type_number_t = 0
         var numCPUs: uint = 0
-        let CPUUsageLock = NSLock()
 
         var totalUsage: Double = 0.0
         var userTime: Double = 0.0
@@ -32,7 +33,8 @@ class SystemMetricsCollector {
         }
 
         if status == 0 {
-            CPUUsageLock.lock()
+            cpuLock.lock()
+            defer { cpuLock.unlock() }
 
             var numCPUsU = natural_t(numCPUs)
 
@@ -59,26 +61,42 @@ class SystemMetricsCollector {
                     totalNice += UInt32(cpuLoadInfo[Int(CPU_STATE_NICE)])
                 }
 
-                let totalTicks = totalUser + totalSystem + totalIdle + totalNice
+                // Calculate delta from previous measurement
+                if let previous = previousCPUInfo {
+                    let userDiff = totalUser > previous.user ? totalUser - previous.user : 0
+                    let systemDiff = totalSystem > previous.system ? totalSystem - previous.system : 0
+                    let idleDiff = totalIdle > previous.idle ? totalIdle - previous.idle : 0
+                    let niceDiff = totalNice > previous.nice ? totalNice - previous.nice : 0
 
-                if totalTicks > 0 {
-                    userTime = Double(totalUser) / Double(totalTicks) * 100.0
-                    systemTime = Double(totalSystem) / Double(totalTicks) * 100.0
-                    idleTime = Double(totalIdle) / Double(totalTicks) * 100.0
-                    totalUsage = 100.0 - idleTime
+                    let totalDiff = userDiff + systemDiff + idleDiff + niceDiff
+
+                    if totalDiff > 0 {
+                        userTime = Double(userDiff + niceDiff) / Double(totalDiff) * 100.0
+                        systemTime = Double(systemDiff) / Double(totalDiff) * 100.0
+                        idleTime = Double(idleDiff) / Double(totalDiff) * 100.0
+                        totalUsage = 100.0 - idleTime
+                    }
+                } else {
+                    // First measurement - use absolute values
+                    let totalTicks = totalUser + totalSystem + totalIdle + totalNice
+                    if totalTicks > 0 {
+                        userTime = Double(totalUser + totalNice) / Double(totalTicks) * 100.0
+                        systemTime = Double(totalSystem) / Double(totalTicks) * 100.0
+                        idleTime = Double(totalIdle) / Double(totalTicks) * 100.0
+                        totalUsage = 100.0 - idleTime
+                    }
                 }
+
+                // Store current values for next measurement
+                previousCPUInfo = (totalUser, totalSystem, totalIdle, totalNice)
 
                 // Clean up
-                let prevCpuInfoSize = MemoryLayout<integer_t>.stride * Int(numPrevCpuInfo)
-                if let prevCpuInfo = prevCpuInfo {
-                    vm_deallocate(mach_task_self_, vm_address_t(bitPattern: prevCpuInfo), vm_size_t(prevCpuInfoSize))
-                }
-
-                prevCpuInfo = cpuInfo
-                numPrevCpuInfo = numCpuInfo
+                vm_deallocate(
+                    mach_task_self_,
+                    vm_address_t(bitPattern: cpuInfo),
+                    vm_size_t(MemoryLayout<integer_t>.stride * Int(numCpuInfo))
+                )
             }
-
-            CPUUsageLock.unlock()
         }
 
         return CPUMetrics(

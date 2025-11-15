@@ -17,6 +17,7 @@ struct AppSettings: Codable {
     var showDetailedCPU: Bool // Show User/System breakdown instead of total
     var widgetMetric1: MetricType // First metric to show in widget
     var widgetMetric2: MetricType // Second metric to show in widget
+    var pipMetric: MetricType // Metric to show in Picture-in-Picture
 
     static let `default` = AppSettings(
         enabledMetrics: Set(MetricType.allCases),
@@ -25,7 +26,8 @@ struct AppSettings: Codable {
         maxDataPoints: 300,
         showDetailedCPU: false, // Default to total view
         widgetMetric1: .cpu, // Default to CPU
-        widgetMetric2: .memory // Default to Memory
+        widgetMetric2: .memory, // Default to Memory
+        pipMetric: .cpu // Default to CPU for PiP
     )
 }
 

@@ -20,6 +20,7 @@ struct ContentView: View {
             DashboardView()
                 .navigationTitle("Activity Monitor")
                 .navigationBarTitleDisplayMode(.large)
+                .preferredColorScheme(settingsManager.settings.appTheme == .dark ? .dark : .light)
                 .toolbar {
                     ToolbarItem(placement: .topBarLeading) {
                         HStack(spacing: 8) {

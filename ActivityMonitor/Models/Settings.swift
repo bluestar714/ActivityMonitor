@@ -9,6 +9,11 @@ import Foundation
 import Observation
 import WidgetKit
 
+enum AppTheme: String, Codable, CaseIterable {
+    case light = "Light"
+    case dark = "Dark"
+}
+
 struct AppSettings: Codable {
     var enabledMetrics: Set<MetricType>
     var refreshInterval: TimeInterval // In seconds
@@ -18,6 +23,7 @@ struct AppSettings: Codable {
     var widgetMetric1: MetricType // First metric to show in widget
     var widgetMetric2: MetricType // Second metric to show in widget
     var pipMetric: MetricType // Metric to show in Picture-in-Picture
+    var appTheme: AppTheme // App theme (light or dark)
 
     static let `default` = AppSettings(
         enabledMetrics: Set(MetricType.allCases),
@@ -27,7 +33,8 @@ struct AppSettings: Codable {
         showDetailedCPU: false, // Default to total view
         widgetMetric1: .cpu, // Default to CPU
         widgetMetric2: .memory, // Default to Memory
-        pipMetric: .cpu // Default to CPU for PiP
+        pipMetric: .cpu, // Default to CPU for PiP
+        appTheme: .dark // Default to Dark theme
     )
 }
 

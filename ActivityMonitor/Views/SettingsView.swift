@@ -16,6 +16,29 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             Form {
+                // Appearance Section
+                Section {
+                    @Bindable var settings = settingsManager
+
+                    Picker("Theme", selection: $settings.settings.appTheme) {
+                        ForEach(AppTheme.allCases, id: \.self) { theme in
+                            HStack {
+                                Image(systemName: theme == .light ? "sun.max.fill" : "moon.fill")
+                                Text(theme.rawValue)
+                            }
+                            .tag(theme)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                    .sensoryFeedback(.selection, trigger: settingsManager.settings.appTheme)
+                } header: {
+                    Text("Appearance")
+                        .font(.system(size: 13, weight: .semibold, design: .rounded))
+                } footer: {
+                    Text("Choose the color theme for the entire app including Picture-in-Picture mode.")
+                        .font(.system(size: 13, design: .rounded))
+                }
+
                 // Enabled Metrics Section
                 Section {
                     ForEach(MetricType.allCases, id: \.self) { metric in

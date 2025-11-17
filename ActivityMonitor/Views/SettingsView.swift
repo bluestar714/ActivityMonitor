@@ -20,16 +20,49 @@ struct SettingsView: View {
                 Section {
                     @Bindable var settings = settingsManager
 
-                    Picker("Theme", selection: $settings.settings.appTheme) {
-                        ForEach(AppTheme.allCases, id: \.self) { theme in
-                            HStack {
-                                Image(systemName: theme == .light ? "sun.max.fill" : "moon.fill")
-                                Text(theme.rawValue)
+                    // Custom segmented control with icons
+                    HStack(spacing: 0) {
+                        // Light Theme Button
+                        Button {
+                            settings.settings.appTheme = .light
+                        } label: {
+                            HStack(spacing: 6) {
+                                Image(systemName: "sun.max.fill")
+                                    .font(.system(size: 14))
+                                Text("Light")
+                                    .font(.system(size: 15, weight: .medium, design: .rounded))
                             }
-                            .tag(theme)
+                            .foregroundStyle(settings.settings.appTheme == .light ? Color.white : Color.primary)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 8)
+                            .background(settings.settings.appTheme == .light ? Color.accentColor : Color.clear)
+                            .contentShape(Rectangle())
                         }
+                        .buttonStyle(.plain)
+
+                        Divider()
+                            .frame(height: 30)
+
+                        // Dark Theme Button
+                        Button {
+                            settings.settings.appTheme = .dark
+                        } label: {
+                            HStack(spacing: 6) {
+                                Image(systemName: "moon.fill")
+                                    .font(.system(size: 14))
+                                Text("Dark")
+                                    .font(.system(size: 15, weight: .medium, design: .rounded))
+                            }
+                            .foregroundStyle(settings.settings.appTheme == .dark ? Color.white : Color.primary)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 8)
+                            .background(settings.settings.appTheme == .dark ? Color.accentColor : Color.clear)
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
                     }
-                    .pickerStyle(.segmented)
+                    .background(Color(.systemGray5))
+                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
                     .sensoryFeedback(.selection, trigger: settingsManager.settings.appTheme)
                 } header: {
                     Text("Appearance")

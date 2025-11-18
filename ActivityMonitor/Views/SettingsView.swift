@@ -167,11 +167,22 @@ struct SettingsView: View {
                     .sensoryFeedback(.selection, trigger: settingsManager.settings.showDetailedCPU) { _, _ in
                         settingsManager.settings.hapticsEnabled
                     }
+                } header: {
+                    Text("Display Options")
+                        .font(.system(size: 13, weight: .semibold, design: .rounded))
+                } footer: {
+                    Text("When enabled, CPU metric shows User and System usage separately. Tap the CPU card to quickly toggle this setting.")
+                        .font(.system(size: 13, design: .rounded))
+                }
+
+                // Haptic Feedback Section
+                Section {
+                    @Bindable var settings = settingsManager
 
                     Toggle(isOn: $settings.settings.hapticsEnabled) {
                         Label {
                             VStack(alignment: .leading, spacing: 4) {
-                                Text("Haptic Feedback")
+                                Text("Enable Haptic Feedback")
                                     .font(.system(size: 16, weight: .medium, design: .rounded))
                                 Text("Vibrate on interactions")
                                     .font(.system(size: 13, design: .rounded))
@@ -188,10 +199,10 @@ struct SettingsView: View {
                     .tint(.purple)
                     .sensoryFeedback(.selection, trigger: settingsManager.settings.hapticsEnabled)
                 } header: {
-                    Text("Display Options")
+                    Text("Haptic Feedback")
                         .font(.system(size: 13, weight: .semibold, design: .rounded))
                 } footer: {
-                    Text("When enabled, CPU metric shows User and System usage separately. Tap the CPU card to quickly toggle this setting.\n\nHaptic feedback provides tactile responses when you interact with buttons and controls.")
+                    Text("Provides tactile responses when you interact with buttons and controls throughout the app.")
                         .font(.system(size: 13, design: .rounded))
                 }
 

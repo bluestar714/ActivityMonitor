@@ -63,7 +63,9 @@ struct SettingsView: View {
                     }
                     .background(Color(.systemGray5))
                     .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-                    .sensoryFeedback(.selection, trigger: settingsManager.settings.appTheme)
+                    .sensoryFeedback(.selection, trigger: settingsManager.settings.appTheme) { _, _ in
+                        settingsManager.settings.hapticsEnabled
+                    }
                 } header: {
                     Text("Appearance")
                         .font(.system(size: 13, weight: .semibold, design: .rounded))
@@ -98,7 +100,9 @@ struct SettingsView: View {
                             }
                         }
                         .tint(colorForMetric(metric))
-                        .sensoryFeedback(.selection, trigger: settingsManager.isMetricEnabled(metric))
+                        .sensoryFeedback(.selection, trigger: settingsManager.isMetricEnabled(metric)) { _, _ in
+                            settingsManager.settings.hapticsEnabled
+                        }
                     }
                 } header: {
                     Text("Enabled Metrics")
@@ -160,12 +164,34 @@ struct SettingsView: View {
                         }
                     }
                     .tint(.blue)
-                    .sensoryFeedback(.selection, trigger: settingsManager.settings.showDetailedCPU)
+                    .sensoryFeedback(.selection, trigger: settingsManager.settings.showDetailedCPU) { _, _ in
+                        settingsManager.settings.hapticsEnabled
+                    }
+
+                    Toggle(isOn: $settings.settings.hapticsEnabled) {
+                        Label {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Haptic Feedback")
+                                    .font(.system(size: 16, weight: .medium, design: .rounded))
+                                Text("Vibrate on interactions")
+                                    .font(.system(size: 13, design: .rounded))
+                                    .foregroundStyle(.secondary)
+                            }
+                        } icon: {
+                            Image(systemName: settings.settings.hapticsEnabled ? "iphone.radiowaves.left.and.right" : "iphone.slash")
+                                .foregroundStyle(.purple.gradient)
+                                .symbolRenderingMode(.hierarchical)
+                                .font(.system(size: 20))
+                                .symbolEffect(.bounce, value: settings.settings.hapticsEnabled)
+                        }
+                    }
+                    .tint(.purple)
+                    .sensoryFeedback(.selection, trigger: settingsManager.settings.hapticsEnabled)
                 } header: {
                     Text("Display Options")
                         .font(.system(size: 13, weight: .semibold, design: .rounded))
                 } footer: {
-                    Text("When enabled, CPU metric shows User and System usage separately. Tap the CPU card to quickly toggle this setting.")
+                    Text("When enabled, CPU metric shows User and System usage separately. Tap the CPU card to quickly toggle this setting.\n\nHaptic feedback provides tactile responses when you interact with buttons and controls.")
                         .font(.system(size: 13, design: .rounded))
                 }
 
@@ -180,7 +206,9 @@ struct SettingsView: View {
                         }
                     }
                     .pickerStyle(.menu)
-                    .sensoryFeedback(.selection, trigger: settingsManager.settings.widgetMetric1)
+                    .sensoryFeedback(.selection, trigger: settingsManager.settings.widgetMetric1) { _, _ in
+                        settingsManager.settings.hapticsEnabled
+                    }
 
                     Picker("Second Metric", selection: $settings.settings.widgetMetric2) {
                         ForEach(MetricType.allCases, id: \.self) { metric in
@@ -189,7 +217,9 @@ struct SettingsView: View {
                         }
                     }
                     .pickerStyle(.menu)
-                    .sensoryFeedback(.selection, trigger: settingsManager.settings.widgetMetric2)
+                    .sensoryFeedback(.selection, trigger: settingsManager.settings.widgetMetric2) { _, _ in
+                        settingsManager.settings.hapticsEnabled
+                    }
                 } header: {
                     Text("Widget Display")
                         .font(.system(size: 13, weight: .semibold, design: .rounded))
@@ -209,7 +239,9 @@ struct SettingsView: View {
                         }
                     }
                     .pickerStyle(.menu)
-                    .sensoryFeedback(.selection, trigger: settingsManager.settings.pipMetric)
+                    .sensoryFeedback(.selection, trigger: settingsManager.settings.pipMetric) { _, _ in
+                        settingsManager.settings.hapticsEnabled
+                    }
                 } header: {
                     Text("Picture-in-Picture Display")
                         .font(.system(size: 13, weight: .semibold, design: .rounded))
@@ -228,7 +260,9 @@ struct SettingsView: View {
                         Label("Clear History", systemImage: "trash")
                             .font(.system(size: 16, weight: .medium, design: .rounded))
                     }
-                    .sensoryFeedback(.success, trigger: metricsManager.cpuHistory.count)
+                    .sensoryFeedback(.success, trigger: metricsManager.cpuHistory.count) { _, _ in
+                        settingsManager.settings.hapticsEnabled
+                    }
                 } header: {
                     Text("Data")
                         .font(.system(size: 13, weight: .semibold, design: .rounded))

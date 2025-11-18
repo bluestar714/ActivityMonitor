@@ -24,6 +24,7 @@ struct AppSettings: Codable {
     var widgetMetric2: MetricType // Second metric to show in widget
     var pipMetric: MetricType // Metric to show in Picture-in-Picture
     var appTheme: AppTheme // App theme (light or dark)
+    var hapticsEnabled: Bool // Enable/disable haptic feedback
 
     static let `default` = AppSettings(
         enabledMetrics: Set(MetricType.allCases),
@@ -34,7 +35,8 @@ struct AppSettings: Codable {
         widgetMetric1: .cpu, // Default to CPU
         widgetMetric2: .memory, // Default to Memory
         pipMetric: .cpu, // Default to CPU for PiP
-        appTheme: .dark // Default to Dark theme
+        appTheme: .dark, // Default to Dark theme
+        hapticsEnabled: true // Default to enabled
     )
 }
 

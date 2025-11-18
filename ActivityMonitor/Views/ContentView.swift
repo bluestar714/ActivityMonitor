@@ -38,7 +38,9 @@ struct ContentView: View {
                                 .buttonStyle(.bordered)
                                 .buttonBorderShape(.capsule)
                                 .tint(liveActivityActive ? .red : .purple)
-                                .sensoryFeedback(.selection, trigger: liveActivityActive)
+                                .sensoryFeedback(.selection, trigger: liveActivityActive) { _, _ in
+                                    settingsManager.settings.hapticsEnabled
+                                }
                             }
 
                             // Picture-in-Picture Button
@@ -55,7 +57,9 @@ struct ContentView: View {
                             .buttonBorderShape(.capsule)
                             .tint(pipManager.isPiPActive ? .red : .cyan)
                             .disabled(!pipManager.isPiPPossible)
-                            .sensoryFeedback(.selection, trigger: pipManager.isPiPActive)
+                            .sensoryFeedback(.selection, trigger: pipManager.isPiPActive) { _, _ in
+                                settingsManager.settings.hapticsEnabled
+                            }
                         }
                     }
 
@@ -69,7 +73,9 @@ struct ContentView: View {
                         .buttonStyle(.bordered)
                         .buttonBorderShape(.capsule)
                         .tint(.blue)
-                        .sensoryFeedback(.selection, trigger: showingSettings)
+                        .sensoryFeedback(.selection, trigger: showingSettings) { _, _ in
+                            settingsManager.settings.hapticsEnabled
+                        }
                     }
                 }
                 .sheet(isPresented: $showingSettings) {

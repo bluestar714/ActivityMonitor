@@ -38,7 +38,9 @@ struct DashboardView: View {
                             settingsManager.settings.showDetailedCPU.toggle()
                         }
                     }
-                    .sensoryFeedback(.selection, trigger: settingsManager.settings.showDetailedCPU)
+                    .sensoryFeedback(.selection, trigger: settingsManager.settings.showDetailedCPU) { _, _ in
+                        settingsManager.settings.hapticsEnabled
+                    }
                 }
 
                 // Memory Metric
@@ -102,7 +104,9 @@ struct DashboardView: View {
             .refreshable {
                 await refreshMetrics()
             }
-            .sensoryFeedback(.success, trigger: metricsManager.currentMetrics.timestamp)
+            .sensoryFeedback(.success, trigger: metricsManager.currentMetrics.timestamp) { _, _ in
+                settingsManager.settings.hapticsEnabled
+            }
 
             // PiP Video Layer (hidden, used only for PiP functionality)
             PiPVideoLayerView { layer in

@@ -22,15 +22,15 @@ struct PiPMetricsView: View {
     }
 
     private var backgroundColor: Color {
-        appearance == .dark ? Color(.systemGroupedBackground) : Color(.systemGroupedBackground)
+        Color.white
     }
 
     private var primaryTextColor: Color {
-        appearance == .dark ? Color.white : Color.black
+        Color.black
     }
 
     private var secondaryTextColor: Color {
-        appearance == .dark ? Color(.secondaryLabel) : Color(.secondaryLabel)
+        Color.gray
     }
 
     private var metricValue: String {

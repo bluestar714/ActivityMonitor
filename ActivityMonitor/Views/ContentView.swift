@@ -20,6 +20,7 @@ struct ContentView: View {
             DashboardView()
                 .navigationTitle("Activity Monitor")
                 .navigationBarTitleDisplayMode(.large)
+                .preferredColorScheme(settingsManager.settings.appTheme == .dark ? .dark : .light)
                 .toolbar {
                     ToolbarItem(placement: .topBarLeading) {
                         HStack(spacing: 8) {
@@ -30,14 +31,16 @@ struct ContentView: View {
                                 } label: {
                                     Label(
                                         liveActivityActive ? "Stop Live Activity" : "Start Live Activity",
-                                        systemImage: liveActivityActive ? "livephoto.slash" : "livephoto"
+                                        systemImage: liveActivityActive ? "livephoto" : "livephoto.slash"
                                     )
                                     .symbolRenderingMode(.multicolor)
                                 }
                                 .buttonStyle(.bordered)
                                 .buttonBorderShape(.capsule)
-                                .tint(liveActivityActive ? .red : .purple)
-                                .sensoryFeedback(.selection, trigger: liveActivityActive)
+                                .tint(liveActivityActive ? .green : .gray)
+                                .sensoryFeedback(.selection, trigger: liveActivityActive) { _, _ in
+                                    settingsManager.settings.hapticsEnabled
+                                }
                             }
 
                             // Picture-in-Picture Button
@@ -46,15 +49,17 @@ struct ContentView: View {
                             } label: {
                                 Label(
                                     pipManager.isPiPActive ? "Stop PiP" : "Start PiP",
-                                    systemImage: pipManager.isPiPActive ? "pip.exit" : "pip.enter"
+                                    systemImage: pipManager.isPiPActive ? "pip.enter" : "pip.exit"
                                 )
                                 .symbolRenderingMode(.monochrome)
                             }
                             .buttonStyle(.bordered)
                             .buttonBorderShape(.capsule)
-                            .tint(pipManager.isPiPActive ? .red : .cyan)
+                            .tint(pipManager.isPiPActive ? .green : .gray)
                             .disabled(!pipManager.isPiPPossible)
-                            .sensoryFeedback(.selection, trigger: pipManager.isPiPActive)
+                            .sensoryFeedback(.selection, trigger: pipManager.isPiPActive) { _, _ in
+                                settingsManager.settings.hapticsEnabled
+                            }
                         }
                     }
 
@@ -68,7 +73,9 @@ struct ContentView: View {
                         .buttonStyle(.bordered)
                         .buttonBorderShape(.capsule)
                         .tint(.blue)
-                        .sensoryFeedback(.selection, trigger: showingSettings)
+                        .sensoryFeedback(.selection, trigger: showingSettings) { _, _ in
+                            settingsManager.settings.hapticsEnabled
+                        }
                     }
                 }
                 .sheet(isPresented: $showingSettings) {

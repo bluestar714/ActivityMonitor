@@ -17,6 +17,22 @@ struct PiPMetricsView: View {
         settingsManager.settings.pipMetric
     }
 
+    private var appearance: AppTheme {
+        settingsManager.settings.appTheme
+    }
+
+    private var backgroundColor: Color {
+        Color.white
+    }
+
+    private var primaryTextColor: Color {
+        Color.black
+    }
+
+    private var secondaryTextColor: Color {
+        Color.gray
+    }
+
     private var metricValue: String {
         switch selectedMetric {
         case .cpu:
@@ -104,11 +120,11 @@ struct PiPMetricsView: View {
             VStack(spacing: 8) {
                 Text("Activity Monitor")
                     .font(.system(size: 24, weight: .bold))
-                    .foregroundColor(.black)
+                    .foregroundColor(primaryTextColor)
 
                 Text(selectedMetric.rawValue)
                     .font(.system(size: 16, weight: .medium))
-                    .foregroundColor(.gray)
+                    .foregroundColor(secondaryTextColor)
             }
             .padding(.top, 30)
 
@@ -146,14 +162,14 @@ struct PiPMetricsView: View {
             HStack(spacing: 30) {
                 ForEach(detailInfo, id: \.label) { info in
                     if !info.label.isEmpty {
-                        DetailItem(label: info.label, value: info.value, color: metricColor)
+                        DetailItem(label: info.label, value: info.value, color: metricColor, labelColor: secondaryTextColor)
                     }
                 }
             }
             .padding(.bottom, 30)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color.white)
+        .background(backgroundColor)
     }
 }
 
@@ -162,12 +178,13 @@ struct DetailItem: View {
     let label: String
     let value: String
     var color: Color = .black
+    var labelColor: Color = .gray
 
     var body: some View {
         VStack(spacing: 6) {
             Text(label)
                 .font(.system(size: 13, weight: .medium))
-                .foregroundColor(.gray)
+                .foregroundColor(labelColor)
 
             Text(value)
                 .font(.system(size: 16, weight: .bold))

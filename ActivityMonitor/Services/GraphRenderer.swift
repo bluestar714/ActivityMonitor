@@ -24,9 +24,9 @@ class GraphRenderer {
 
     /// Renders a SwiftUI view to a UIImage using ImageRenderer (iOS 16+)
     @MainActor
-    func renderView<Content: View>(@ViewBuilder content: () -> Content) -> UIImage? {
+    func renderView<Content: View>(@ViewBuilder content: () -> Content, colorScheme: ColorScheme) -> UIImage? {
         // Use ImageRenderer for completely off-screen rendering
-        let renderer = ImageRenderer(content: content())
+        let renderer = ImageRenderer(content: content().environment(\.colorScheme, colorScheme))
 
         // Set the rendering size
         renderer.proposedSize = ProposedViewSize(width: renderSize.width, height: renderSize.height)
@@ -47,7 +47,7 @@ class GraphRenderer {
     // MARK: - UIImage to CVPixelBuffer
 
     /// Converts a UIImage to a CVPixelBuffer
-    func imageToPixelBuffer(image: UIImage) -> CVPixelBuffer? {
+    func imageToPixelBuffer(image: UIImage, backgroundColor: UIColor) -> CVPixelBuffer? {
         let attrs = [
             kCVPixelBufferCGImageCompatibilityKey: kCFBooleanTrue!,
             kCVPixelBufferCGBitmapContextCompatibilityKey: kCFBooleanTrue!,
@@ -85,11 +85,11 @@ class GraphRenderer {
             return nil
         }
 
-        // Fill with white background
-        context.setFillColor(UIColor.white.cgColor)
+        // Fill with background color first
+        context.setFillColor(backgroundColor.cgColor)
         context.fill(CGRect(origin: .zero, size: renderSize))
 
-        // Draw image
+        // Draw image on top
         if let cgImage = image.cgImage {
             context.draw(cgImage, in: CGRect(origin: .zero, size: renderSize))
         }
@@ -101,13 +101,13 @@ class GraphRenderer {
 
     /// Renders a SwiftUI view directly to a CVPixelBuffer
     @MainActor
-    func renderToPixelBuffer<Content: View>(@ViewBuilder content: () -> Content) -> CVPixelBuffer? {
-        guard let image = renderView(content: content) else {
+    func renderToPixelBuffer<Content: View>(@ViewBuilder content: () -> Content, colorScheme: ColorScheme, backgroundColor: UIColor) -> CVPixelBuffer? {
+        guard let image = renderView(content: content, colorScheme: colorScheme) else {
             print("❌ Failed to render view to image")
             return nil
         }
 
-        return imageToPixelBuffer(image: image)
+        return imageToPixelBuffer(image: image, backgroundColor: backgroundColor)
     }
 
     // MARK: - Metrics Rendering for PiP
@@ -120,14 +120,20 @@ class GraphRenderer {
     ) -> CVPixelBuffer? {
         print("🎨 Rendering metrics for PiP...")
 
-        return renderToPixelBuffer {
+        // Determine color scheme from app theme
+        let colorScheme: ColorScheme = settingsManager.settings.appTheme == .dark ? .dark : .light
+
+        // Get the appropriate background color for the theme
+        let traitCollection = UITraitCollection(userInterfaceStyle: colorScheme == .dark ? .dark : .light)
+        let backgroundColor = UIColor.systemGroupedBackground.resolvedColor(with: traitCollection)
+
+        return renderToPixelBuffer(content: {
             PiPMetricsView(
                 metricsManager: metricsManager,
                 settingsManager: settingsManager
             )
             .frame(width: renderSize.width, height: renderSize.height, alignment: .center)
-            .background(Color.white)
             .clipShape(RoundedRectangle(cornerRadius: 0))
-        }
+        }, colorScheme: colorScheme, backgroundColor: backgroundColor)
     }
 }

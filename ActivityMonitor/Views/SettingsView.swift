@@ -16,6 +16,64 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             Form {
+                // Appearance Section
+                Section {
+                    @Bindable var settings = settingsManager
+
+                    // Custom segmented control with icons
+                    HStack(spacing: 0) {
+                        // Light Theme Button
+                        Button {
+                            settings.settings.appTheme = .light
+                        } label: {
+                            HStack(spacing: 6) {
+                                Image(systemName: "sun.max.fill")
+                                    .font(.system(size: 14))
+                                Text("Light")
+                                    .font(.system(size: 15, weight: .medium, design: .rounded))
+                            }
+                            .foregroundStyle(settings.settings.appTheme == .light ? Color.white : Color.primary)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 8)
+                            .background(settings.settings.appTheme == .light ? Color.accentColor : Color.clear)
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+
+                        Divider()
+                            .frame(height: 30)
+
+                        // Dark Theme Button
+                        Button {
+                            settings.settings.appTheme = .dark
+                        } label: {
+                            HStack(spacing: 6) {
+                                Image(systemName: "moon.fill")
+                                    .font(.system(size: 14))
+                                Text("Dark")
+                                    .font(.system(size: 15, weight: .medium, design: .rounded))
+                            }
+                            .foregroundStyle(settings.settings.appTheme == .dark ? Color.white : Color.primary)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 8)
+                            .background(settings.settings.appTheme == .dark ? Color.accentColor : Color.clear)
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    .background(Color(.systemGray5))
+                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                    .sensoryFeedback(.selection, trigger: settingsManager.settings.appTheme) { _, _ in
+                        settingsManager.settings.hapticsEnabled
+                    }
+                } header: {
+                    Text("Appearance")
+                        .font(.system(size: 13, weight: .semibold, design: .rounded))
+                } footer: {
+                    Text("Choose the color theme for the entire app including Picture-in-Picture mode.")
+                        .font(.system(size: 13, design: .rounded))
+                }
+
                 // Enabled Metrics Section
                 Section {
                     ForEach(MetricType.allCases, id: \.self) { metric in
@@ -42,7 +100,9 @@ struct SettingsView: View {
                             }
                         }
                         .tint(colorForMetric(metric))
-                        .sensoryFeedback(.selection, trigger: settingsManager.isMetricEnabled(metric))
+                        .sensoryFeedback(.selection, trigger: settingsManager.isMetricEnabled(metric)) { _, _ in
+                            settingsManager.settings.hapticsEnabled
+                        }
                     }
                 } header: {
                     Text("Enabled Metrics")
@@ -104,12 +164,45 @@ struct SettingsView: View {
                         }
                     }
                     .tint(.blue)
-                    .sensoryFeedback(.selection, trigger: settingsManager.settings.showDetailedCPU)
+                    .sensoryFeedback(.selection, trigger: settingsManager.settings.showDetailedCPU) { _, _ in
+                        settingsManager.settings.hapticsEnabled
+                    }
                 } header: {
                     Text("Display Options")
                         .font(.system(size: 13, weight: .semibold, design: .rounded))
                 } footer: {
                     Text("When enabled, CPU metric shows User and System usage separately. Tap the CPU card to quickly toggle this setting.")
+                        .font(.system(size: 13, design: .rounded))
+                }
+
+                // Haptic Feedback Section
+                Section {
+                    @Bindable var settings = settingsManager
+
+                    Toggle(isOn: $settings.settings.hapticsEnabled) {
+                        Label {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Enable Haptic Feedback")
+                                    .font(.system(size: 16, weight: .medium, design: .rounded))
+                                Text("Vibrate on interactions")
+                                    .font(.system(size: 13, design: .rounded))
+                                    .foregroundStyle(.secondary)
+                            }
+                        } icon: {
+                            Image(systemName: settings.settings.hapticsEnabled ? "iphone.radiowaves.left.and.right" : "iphone.slash")
+                                .foregroundStyle(.purple.gradient)
+                                .symbolRenderingMode(.hierarchical)
+                                .font(.system(size: 20))
+                                .symbolEffect(.bounce, value: settings.settings.hapticsEnabled)
+                        }
+                    }
+                    .tint(.purple)
+                    .sensoryFeedback(.selection, trigger: settingsManager.settings.hapticsEnabled)
+                } header: {
+                    Text("Haptic Feedback")
+                        .font(.system(size: 13, weight: .semibold, design: .rounded))
+                } footer: {
+                    Text("Provides tactile responses when you interact with buttons and controls throughout the app.")
                         .font(.system(size: 13, design: .rounded))
                 }
 
@@ -124,7 +217,9 @@ struct SettingsView: View {
                         }
                     }
                     .pickerStyle(.menu)
-                    .sensoryFeedback(.selection, trigger: settingsManager.settings.widgetMetric1)
+                    .sensoryFeedback(.selection, trigger: settingsManager.settings.widgetMetric1) { _, _ in
+                        settingsManager.settings.hapticsEnabled
+                    }
 
                     Picker("Second Metric", selection: $settings.settings.widgetMetric2) {
                         ForEach(MetricType.allCases, id: \.self) { metric in
@@ -133,7 +228,9 @@ struct SettingsView: View {
                         }
                     }
                     .pickerStyle(.menu)
-                    .sensoryFeedback(.selection, trigger: settingsManager.settings.widgetMetric2)
+                    .sensoryFeedback(.selection, trigger: settingsManager.settings.widgetMetric2) { _, _ in
+                        settingsManager.settings.hapticsEnabled
+                    }
                 } header: {
                     Text("Widget Display")
                         .font(.system(size: 13, weight: .semibold, design: .rounded))
@@ -153,7 +250,9 @@ struct SettingsView: View {
                         }
                     }
                     .pickerStyle(.menu)
-                    .sensoryFeedback(.selection, trigger: settingsManager.settings.pipMetric)
+                    .sensoryFeedback(.selection, trigger: settingsManager.settings.pipMetric) { _, _ in
+                        settingsManager.settings.hapticsEnabled
+                    }
                 } header: {
                     Text("Picture-in-Picture Display")
                         .font(.system(size: 13, weight: .semibold, design: .rounded))
@@ -172,7 +271,9 @@ struct SettingsView: View {
                         Label("Clear History", systemImage: "trash")
                             .font(.system(size: 16, weight: .medium, design: .rounded))
                     }
-                    .sensoryFeedback(.success, trigger: metricsManager.cpuHistory.count)
+                    .sensoryFeedback(.success, trigger: metricsManager.cpuHistory.count) { _, _ in
+                        settingsManager.settings.hapticsEnabled
+                    }
                 } header: {
                     Text("Data")
                         .font(.system(size: 13, weight: .semibold, design: .rounded))

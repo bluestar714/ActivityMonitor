@@ -19,6 +19,8 @@ class MetricsManager {
     var memoryHistory: [MemoryMetrics] = []
     var networkHistory: [NetworkMetrics] = []
     var storageHistory: [StorageMetrics] = []
+    var batteryHistory: [BatteryMetrics] = []
+    var diskIOHistory: [DiskIOMetrics] = []
 
     private let collector = SystemMetricsCollector()
     private var timer: Timer?
@@ -39,7 +41,9 @@ class MetricsManager {
             cpu: cpuHistory,
             memory: memoryHistory,
             network: networkHistory,
-            storage: storageHistory
+            storage: storageHistory,
+            battery: batteryHistory,
+            diskIO: diskIOHistory
         )
 
         // Tell all widgets to reload their timelines with new data
@@ -85,15 +89,16 @@ class MetricsManager {
 
         currentMetrics = snapshot
 
-        // Update histories
-        if settingsManager.isMetricEnabled(.cpu) {
+        // Update histories - CPU history is collected if any CPU metric is enabled
+        if settingsManager.isMetricEnabled(.cpuUser) || settingsManager.isMetricEnabled(.cpuSystem) || settingsManager.isMetricEnabled(.cpuTotal) {
             cpuHistory.append(snapshot.cpu)
             if cpuHistory.count > maxDataPoints {
                 cpuHistory.removeFirst()
             }
         }
 
-        if settingsManager.isMetricEnabled(.memory) {
+        // Memory history is collected if any Memory metric is enabled
+        if settingsManager.isMetricEnabled(.memoryActive) || settingsManager.isMetricEnabled(.memoryInactive) || settingsManager.isMetricEnabled(.memoryWired) || settingsManager.isMetricEnabled(.memoryCompressed) || settingsManager.isMetricEnabled(.memoryTotal) {
             memoryHistory.append(snapshot.memory)
             if memoryHistory.count > maxDataPoints {
                 memoryHistory.removeFirst()
@@ -111,6 +116,21 @@ class MetricsManager {
             storageHistory.append(snapshot.storage)
             if storageHistory.count > maxDataPoints {
                 storageHistory.removeFirst()
+            }
+        }
+
+        if settingsManager.isMetricEnabled(.battery) {
+            batteryHistory.append(snapshot.battery)
+            if batteryHistory.count > maxDataPoints {
+                batteryHistory.removeFirst()
+            }
+        }
+
+        // Disk I/O history is collected if any of the three disk I/O metrics are enabled
+        if settingsManager.isMetricEnabled(.diskIORead) || settingsManager.isMetricEnabled(.diskIOWrite) || settingsManager.isMetricEnabled(.diskIOTotal) {
+            diskIOHistory.append(snapshot.diskIO)
+            if diskIOHistory.count > maxDataPoints {
+                diskIOHistory.removeFirst()
             }
         }
 
@@ -136,14 +156,34 @@ class MetricsManager {
 
     func getHistory(for type: MetricType) -> [Double] {
         switch type {
-        case .cpu:
-            return cpuHistory.map { $0.usage }
-        case .memory:
+        case .cpuUser:
+            return cpuHistory.map { $0.userTime }
+        case .cpuSystem:
+            return cpuHistory.map { $0.systemTime }
+        case .cpuTotal:
+            return cpuHistory.map { $0.userTime + $0.systemTime }
+        case .memoryActive:
+            return memoryHistory.map { Double($0.active) / Double($0.total) * 100.0 }
+        case .memoryInactive:
+            return memoryHistory.map { Double($0.inactive) / Double($0.total) * 100.0 }
+        case .memoryWired:
+            return memoryHistory.map { Double($0.wired) / Double($0.total) * 100.0 }
+        case .memoryCompressed:
+            return memoryHistory.map { Double($0.compressed) / Double($0.total) * 100.0 }
+        case .memoryTotal:
             return memoryHistory.map { $0.usagePercentage }
         case .network:
             return networkHistory.map { $0.downloadSpeed }
         case .storage:
             return storageHistory.map { $0.usagePercentage }
+        case .battery:
+            return batteryHistory.map { $0.level }
+        case .diskIORead:
+            return diskIOHistory.map { $0.readSpeed }
+        case .diskIOWrite:
+            return diskIOHistory.map { $0.writeSpeed }
+        case .diskIOTotal:
+            return diskIOHistory.map { $0.readSpeed + $0.writeSpeed }
         }
     }
 
@@ -152,5 +192,7 @@ class MetricsManager {
         memoryHistory.removeAll()
         networkHistory.removeAll()
         storageHistory.removeAll()
+        batteryHistory.removeAll()
+        diskIOHistory.removeAll()
     }
 }

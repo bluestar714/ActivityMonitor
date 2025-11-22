@@ -133,23 +133,57 @@ struct CompactTwoMetricsView: View {
 
     private func valueString(for type: MetricType) -> String {
         switch type {
-        case .cpu:
+        case .cpuUser:
+            return "\(Int(metrics.cpu.userTime))%"
+        case .cpuSystem:
+            return "\(Int(metrics.cpu.systemTime))%"
+        case .cpuTotal:
             return "\(Int(metrics.cpu.userTime + metrics.cpu.systemTime))%"
-        case .memory:
+        case .memoryActive:
+            let percentage = Double(metrics.memory.active) / Double(metrics.memory.total) * 100.0
+            return "\(Int(percentage))%"
+        case .memoryInactive:
+            let percentage = Double(metrics.memory.inactive) / Double(metrics.memory.total) * 100.0
+            return "\(Int(percentage))%"
+        case .memoryWired:
+            let percentage = Double(metrics.memory.wired) / Double(metrics.memory.total) * 100.0
+            return "\(Int(percentage))%"
+        case .memoryCompressed:
+            let percentage = Double(metrics.memory.compressed) / Double(metrics.memory.total) * 100.0
+            return "\(Int(percentage))%"
+        case .memoryTotal:
             return "\(Int(metrics.memory.usagePercentage))%"
         case .network:
             return String(format: "%.1f MB/s", metrics.network.downloadSpeedMBps)
         case .storage:
             return String(format: "%.1f GB", metrics.storage.freeSpaceGB)
+        case .battery:
+            return "\(Int(metrics.battery.level))%"
+        case .diskIORead:
+            return String(format: "%.1f MB/s", metrics.diskIO.readSpeedMBps)
+        case .diskIOWrite:
+            return String(format: "%.1f MB/s", metrics.diskIO.writeSpeedMBps)
+        case .diskIOTotal:
+            return String(format: "%.1f MB/s", metrics.diskIO.readSpeedMBps + metrics.diskIO.writeSpeedMBps)
         }
     }
 
     private func colorFor(_ type: MetricType) -> Color {
         switch type {
-        case .cpu: return .blue
-        case .memory: return .green
+        case .cpuUser: return .orange
+        case .cpuSystem: return .red
+        case .cpuTotal: return .blue
+        case .memoryActive: return .green
+        case .memoryInactive: return .yellow
+        case .memoryWired: return .purple
+        case .memoryCompressed: return .pink
+        case .memoryTotal: return .green
         case .network: return .purple
         case .storage: return .orange
+        case .battery: return .yellow
+        case .diskIORead: return .cyan
+        case .diskIOWrite: return Color(red: 1.0, green: 0.2, blue: 0.5)
+        case .diskIOTotal: return .purple
         }
     }
 }
@@ -211,9 +245,25 @@ struct MediumTwoMetricsView: View {
 
     private func valueString(for type: MetricType) -> String {
         switch type {
-        case .cpu:
+        case .cpuUser:
+            return "\(Int(metrics.cpu.userTime))%"
+        case .cpuSystem:
+            return "\(Int(metrics.cpu.systemTime))%"
+        case .cpuTotal:
             return "\(Int(metrics.cpu.userTime + metrics.cpu.systemTime))%"
-        case .memory:
+        case .memoryActive:
+            let percentage = Double(metrics.memory.active) / Double(metrics.memory.total) * 100.0
+            return "\(Int(percentage))%"
+        case .memoryInactive:
+            let percentage = Double(metrics.memory.inactive) / Double(metrics.memory.total) * 100.0
+            return "\(Int(percentage))%"
+        case .memoryWired:
+            let percentage = Double(metrics.memory.wired) / Double(metrics.memory.total) * 100.0
+            return "\(Int(percentage))%"
+        case .memoryCompressed:
+            let percentage = Double(metrics.memory.compressed) / Double(metrics.memory.total) * 100.0
+            return "\(Int(percentage))%"
+        case .memoryTotal:
             return "\(Int(metrics.memory.usagePercentage))%"
         case .network:
             let speed = metrics.network.downloadSpeedMBps
@@ -224,29 +274,67 @@ struct MediumTwoMetricsView: View {
             }
         case .storage:
             return String(format: "%.1f", metrics.storage.freeSpaceGB)
+        case .battery:
+            return "\(Int(metrics.battery.level))%"
+        case .diskIORead:
+            return String(format: "%.1f", metrics.diskIO.readSpeedMBps)
+        case .diskIOWrite:
+            return String(format: "%.1f", metrics.diskIO.writeSpeedMBps)
+        case .diskIOTotal:
+            return String(format: "%.1f", metrics.diskIO.readSpeedMBps + metrics.diskIO.writeSpeedMBps)
         }
     }
 
     private func subtitleString(for type: MetricType) -> String {
         switch type {
-        case .cpu:
+        case .cpuUser:
+            return "User time"
+        case .cpuSystem:
+            return "System time"
+        case .cpuTotal:
             return "User+System"
-        case .memory:
+        case .memoryActive:
+            return String(format: "%.1f GB", metrics.memory.activeGB)
+        case .memoryInactive:
+            return String(format: "%.1f GB", metrics.memory.inactiveGB)
+        case .memoryWired:
+            return String(format: "%.1f GB", metrics.memory.wiredGB)
+        case .memoryCompressed:
+            return String(format: "%.1f GB", metrics.memory.compressedGB)
+        case .memoryTotal:
             return String(format: "%.1f/%.1f GB", metrics.memory.usedGB, metrics.memory.totalGB)
         case .network:
             let speed = metrics.network.downloadSpeedMBps
             return speed >= 1.0 ? "MB/s" : "KB/s"
         case .storage:
             return "GB free"
+        case .battery:
+            return metrics.battery.isCharging ? "Charging" : "Discharging"
+        case .diskIORead:
+            return "Read speed"
+        case .diskIOWrite:
+            return "Write speed"
+        case .diskIOTotal:
+            return "Combined speed"
         }
     }
 
     private func colorFor(_ type: MetricType) -> Color {
         switch type {
-        case .cpu: return .blue
-        case .memory: return .green
+        case .cpuUser: return .orange
+        case .cpuSystem: return .red
+        case .cpuTotal: return .blue
+        case .memoryActive: return .green
+        case .memoryInactive: return .yellow
+        case .memoryWired: return .purple
+        case .memoryCompressed: return .pink
+        case .memoryTotal: return .green
         case .network: return .purple
         case .storage: return .orange
+        case .battery: return .yellow
+        case .diskIORead: return .cyan
+        case .diskIOWrite: return Color(red: 1.0, green: 0.2, blue: 0.5)
+        case .diskIOTotal: return .purple
         }
     }
 }
@@ -317,26 +405,82 @@ struct LargeTwoMetricsView: View {
 
     private func mainValueString(for type: MetricType) -> String {
         switch type {
-        case .cpu:
+        case .cpuUser:
+            return "\(Int(metrics.cpu.userTime))%"
+        case .cpuSystem:
+            return "\(Int(metrics.cpu.systemTime))%"
+        case .cpuTotal:
             return "\(Int(metrics.cpu.userTime + metrics.cpu.systemTime))%"
-        case .memory:
+        case .memoryActive:
+            let percentage = Double(metrics.memory.active) / Double(metrics.memory.total) * 100.0
+            return "\(Int(percentage))%"
+        case .memoryInactive:
+            let percentage = Double(metrics.memory.inactive) / Double(metrics.memory.total) * 100.0
+            return "\(Int(percentage))%"
+        case .memoryWired:
+            let percentage = Double(metrics.memory.wired) / Double(metrics.memory.total) * 100.0
+            return "\(Int(percentage))%"
+        case .memoryCompressed:
+            let percentage = Double(metrics.memory.compressed) / Double(metrics.memory.total) * 100.0
+            return "\(Int(percentage))%"
+        case .memoryTotal:
             return "\(Int(metrics.memory.usagePercentage))%"
         case .network:
             return String(format: "%.1f MB/s", metrics.network.downloadSpeedMBps)
         case .storage:
             return String(format: "%.1f GB", metrics.storage.freeSpaceGB)
+        case .battery:
+            return "\(Int(metrics.battery.level))%"
+        case .diskIORead:
+            return String(format: "%.1f MB/s", metrics.diskIO.readSpeedMBps)
+        case .diskIOWrite:
+            return String(format: "%.1f MB/s", metrics.diskIO.writeSpeedMBps)
+        case .diskIOTotal:
+            return String(format: "%.1f MB/s", metrics.diskIO.readSpeedMBps + metrics.diskIO.writeSpeedMBps)
         }
     }
 
     private func detailStrings(for type: MetricType) -> [String] {
         switch type {
-        case .cpu:
+        case .cpuUser:
             return [
                 "User: \(Int(metrics.cpu.userTime))%",
                 "System: \(Int(metrics.cpu.systemTime))%",
                 "Idle: \(Int(metrics.cpu.idleTime))%"
             ]
-        case .memory:
+        case .cpuSystem:
+            return [
+                "System: \(Int(metrics.cpu.systemTime))%",
+                "User: \(Int(metrics.cpu.userTime))%",
+                "Idle: \(Int(metrics.cpu.idleTime))%"
+            ]
+        case .cpuTotal:
+            return [
+                "User: \(Int(metrics.cpu.userTime))%",
+                "System: \(Int(metrics.cpu.systemTime))%",
+                "Idle: \(Int(metrics.cpu.idleTime))%"
+            ]
+        case .memoryActive:
+            return [
+                "Active: \(String(format: "%.1f", metrics.memory.activeGB)) GB",
+                "Total: \(String(format: "%.1f", metrics.memory.totalGB)) GB"
+            ]
+        case .memoryInactive:
+            return [
+                "Inactive: \(String(format: "%.1f", metrics.memory.inactiveGB)) GB",
+                "Total: \(String(format: "%.1f", metrics.memory.totalGB)) GB"
+            ]
+        case .memoryWired:
+            return [
+                "Wired: \(String(format: "%.1f", metrics.memory.wiredGB)) GB",
+                "Total: \(String(format: "%.1f", metrics.memory.totalGB)) GB"
+            ]
+        case .memoryCompressed:
+            return [
+                "Compressed: \(String(format: "%.1f", metrics.memory.compressedGB)) GB",
+                "Total: \(String(format: "%.1f", metrics.memory.totalGB)) GB"
+            ]
+        case .memoryTotal:
             return [
                 "Used: \(String(format: "%.1f", metrics.memory.usedGB)) GB",
                 "Free: \(String(format: "%.1f", metrics.memory.freeGB)) GB",
@@ -353,15 +497,46 @@ struct LargeTwoMetricsView: View {
                 "Free: \(String(format: "%.1f", metrics.storage.freeSpaceGB)) GB",
                 "\(Int(metrics.storage.usagePercentage))% full"
             ]
+        case .battery:
+            return [
+                "Level: \(Int(metrics.battery.level))%",
+                "State: \(metrics.battery.state.rawValue)",
+                metrics.battery.isCharging ? "Charging" : "On battery"
+            ]
+        case .diskIORead:
+            return [
+                "Read: \(String(format: "%.1f", metrics.diskIO.readSpeedMBps)) MB/s",
+                "Total: \(String(format: "%.1f", metrics.diskIO.readSpeedMBps + metrics.diskIO.writeSpeedMBps)) MB/s"
+            ]
+        case .diskIOWrite:
+            return [
+                "Write: \(String(format: "%.1f", metrics.diskIO.writeSpeedMBps)) MB/s",
+                "Total: \(String(format: "%.1f", metrics.diskIO.readSpeedMBps + metrics.diskIO.writeSpeedMBps)) MB/s"
+            ]
+        case .diskIOTotal:
+            return [
+                "Read: \(String(format: "%.1f", metrics.diskIO.readSpeedMBps)) MB/s",
+                "Write: \(String(format: "%.1f", metrics.diskIO.writeSpeedMBps)) MB/s"
+            ]
         }
     }
 
     private func colorFor(_ type: MetricType) -> Color {
         switch type {
-        case .cpu: return .blue
-        case .memory: return .green
+        case .cpuUser: return .orange
+        case .cpuSystem: return .red
+        case .cpuTotal: return .blue
+        case .memoryActive: return .green
+        case .memoryInactive: return .yellow
+        case .memoryWired: return .purple
+        case .memoryCompressed: return .pink
+        case .memoryTotal: return .green
         case .network: return .purple
         case .storage: return .orange
+        case .battery: return .yellow
+        case .diskIORead: return .cyan
+        case .diskIOWrite: return Color(red: 1.0, green: 0.2, blue: 0.5)
+        case .diskIOTotal: return .purple
         }
     }
 }
@@ -425,6 +600,19 @@ extension MetricsSnapshot {
                 total: 137_438_953_472,     // 128 GB
                 used: 91_539_013_632,       // 85.3 GB
                 free: 45_899_939_840,       // 42.7 GB
+                timestamp: Date()
+            ),
+            battery: BatteryMetrics(
+                level: 75.0,
+                state: .unplugged,
+                isCharging: false,
+                timestamp: Date()
+            ),
+            diskIO: DiskIOMetrics(
+                readBytes: 1_048_576_000,  // 1 GB
+                writeBytes: 524_288_000,   // 500 MB
+                readSpeed: 10_485_760,     // 10 MB/s
+                writeSpeed: 5_242_880,     // 5 MB/s
                 timestamp: Date()
             ),
             timestamp: Date()

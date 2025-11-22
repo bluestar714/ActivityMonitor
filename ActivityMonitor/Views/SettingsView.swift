@@ -334,10 +334,20 @@ struct SettingsView: View {
 
     private func colorForMetric(_ metric: MetricType) -> Color {
         switch metric {
-        case .cpu: return .blue
-        case .memory: return .green
+        case .cpuUser: return .orange
+        case .cpuSystem: return .red
+        case .cpuTotal: return .blue
+        case .memoryActive: return .green
+        case .memoryInactive: return .yellow
+        case .memoryWired: return .purple
+        case .memoryCompressed: return .pink
+        case .memoryTotal: return .green
         case .network: return .orange
         case .storage: return .purple
+        case .battery: return .yellow
+        case .diskIORead: return .cyan
+        case .diskIOWrite: return Color(red: 1.0, green: 0.2, blue: 0.5)
+        case .diskIOTotal: return .purple
         }
     }
 }

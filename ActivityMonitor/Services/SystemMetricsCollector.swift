@@ -238,6 +238,105 @@ class SystemMetricsCollector {
         }
     }
 
+    // MARK: - Battery Metrics
+
+    func collectBatteryMetrics() -> BatteryMetrics {
+        UIDevice.current.isBatteryMonitoringEnabled = true
+
+        let batteryLevel = UIDevice.current.batteryLevel
+        let batteryState = UIDevice.current.batteryState
+
+        let level = batteryLevel >= 0 ? Double(batteryLevel) * 100.0 : 0.0
+
+        let state: BatteryMetrics.BatteryState
+        var isCharging = false
+
+        switch batteryState {
+        case .charging:
+            state = .charging
+            isCharging = true
+        case .full:
+            state = .full
+            isCharging = true
+        case .unplugged:
+            state = .unplugged
+            isCharging = false
+        case .unknown:
+            state = .unknown
+            isCharging = false
+        @unknown default:
+            state = .unknown
+            isCharging = false
+        }
+
+        return BatteryMetrics(
+            level: level,
+            state: state,
+            isCharging: isCharging,
+            timestamp: Date()
+        )
+    }
+
+    // MARK: - Disk I/O Metrics
+
+    private var previousDiskIO: (pageins: UInt64, pageouts: UInt64, timestamp: Date)?
+    private let diskIOLock = NSLock()
+
+    func collectDiskIOMetrics() -> DiskIOMetrics {
+        diskIOLock.lock()
+        defer { diskIOLock.unlock() }
+
+        // Use vm_statistics64 to get system-wide paging activity
+        var vmStats = vm_statistics64()
+        var count = mach_msg_type_number_t(MemoryLayout<vm_statistics64>.size / MemoryLayout<integer_t>.size)
+
+        let result: kern_return_t = withUnsafeMutablePointer(to: &vmStats) {
+            $0.withMemoryRebound(to: integer_t.self, capacity: Int(count)) {
+                host_statistics64(mach_host_self(), HOST_VM_INFO64, $0, &count)
+            }
+        }
+
+        guard result == KERN_SUCCESS else {
+            return .zero
+        }
+
+        let pageSize = UInt64(vm_kernel_page_size)
+
+        // Get total pageins and pageouts (system-wide disk activity)
+        let totalPageins = UInt64(vmStats.pageins)
+        let totalPageouts = UInt64(vmStats.pageouts)
+
+        // Convert pages to bytes
+        let readBytes = totalPageins * pageSize
+        let writeBytes = totalPageouts * pageSize
+
+        var readSpeed: Double = 0.0
+        var writeSpeed: Double = 0.0
+
+        let now = Date()
+
+        if let previous = previousDiskIO {
+            let timeDelta = now.timeIntervalSince(previous.timestamp)
+            if timeDelta > 0 {
+                let pageinsDelta = totalPageins > previous.pageins ? totalPageins - previous.pageins : 0
+                let pageoutsDelta = totalPageouts > previous.pageouts ? totalPageouts - previous.pageouts : 0
+
+                readSpeed = Double(pageinsDelta * pageSize) / timeDelta
+                writeSpeed = Double(pageoutsDelta * pageSize) / timeDelta
+            }
+        }
+
+        previousDiskIO = (totalPageins, totalPageouts, now)
+
+        return DiskIOMetrics(
+            readBytes: readBytes,
+            writeBytes: writeBytes,
+            readSpeed: readSpeed,
+            writeSpeed: writeSpeed,
+            timestamp: now
+        )
+    }
+
     // MARK: - Collect All Metrics
 
     func collectAllMetrics() -> MetricsSnapshot {
@@ -246,6 +345,8 @@ class SystemMetricsCollector {
             memory: collectMemoryMetrics(),
             network: collectNetworkMetrics(),
             storage: collectStorageMetrics(),
+            battery: collectBatteryMetrics(),
+            diskIO: collectDiskIOMetrics(),
             timestamp: Date()
         )
     }

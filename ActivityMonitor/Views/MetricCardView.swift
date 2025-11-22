@@ -110,7 +110,7 @@ struct MetricCardView_Previews: PreviewProvider {
     static var previews: some View {
         VStack(spacing: 16) {
             MetricCardView(
-                type: .cpu,
+                type: .cpuTotal,
                 currentValue: "45%",
                 subtitle: "8 cores active",
                 data: [20, 35, 45, 30, 55, 70, 45, 60, 40, 50],
@@ -119,7 +119,7 @@ struct MetricCardView_Previews: PreviewProvider {
             )
 
             CompactMetricCardView(
-                type: .memory,
+                type: .memoryTotal,
                 currentValue: "3.2 GB",
                 data: [40, 42, 45, 48, 50, 52, 55],
                 maxValue: 100,

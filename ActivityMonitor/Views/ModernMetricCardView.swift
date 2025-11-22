@@ -113,6 +113,145 @@ struct ModernMetricCardView: View {
     }
 }
 
+// MARK: - Dual Metric Card (For Read/Write metrics like Disk I/O)
+
+@available(iOS 17.0, *)
+struct DualMetricCardView: View {
+    let type: MetricType
+    let currentValue1: String
+    let currentValue2: String
+    let subtitle: String
+    let data1: [Double]
+    let data2: [Double]
+    let maxValue: Double
+    let color1: Color
+    let color2: Color
+    let label1: String
+    let label2: String
+
+    @State private var animateGradient = false
+    @State private var isPressed = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            // Header with icon and dual values
+            HStack(alignment: .top, spacing: 12) {
+                // Icon with animated gradient background
+                ZStack {
+                    Circle()
+                        .fill(
+                            .linearGradient(
+                                colors: [
+                                    color1.opacity(0.25),
+                                    color1.opacity(0.1)
+                                ],
+                                startPoint: animateGradient ? .topLeading : .bottomTrailing,
+                                endPoint: animateGradient ? .bottomTrailing : .topLeading
+                            )
+                        )
+                        .frame(width: 48, height: 48)
+                        .shadow(color: color1.opacity(0.2), radius: 8, x: 0, y: 4)
+
+                    Image(systemName: type.icon)
+                        .font(.system(size: 20, weight: .semibold))
+                        .foregroundStyle(color1.gradient)
+                        .symbolRenderingMode(.multicolor)
+                        .symbolEffect(.bounce, value: animateGradient)
+                }
+                .onAppear {
+                    withAnimation(.easeInOut(duration: 3).repeatForever(autoreverses: true)) {
+                        animateGradient.toggle()
+                    }
+                }
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(type.rawValue)
+                        .font(.system(size: 16, weight: .semibold, design: .rounded))
+                        .foregroundStyle(.primary)
+
+                    Text(subtitle)
+                        .font(.system(size: 12, weight: .medium, design: .rounded))
+                        .foregroundStyle(.secondary)
+                }
+
+                Spacer()
+
+                // Dual values stacked
+                VStack(alignment: .trailing, spacing: 4) {
+                    // First value
+                    HStack(spacing: 6) {
+                        Text(label1)
+                            .font(.system(size: 11, weight: .semibold, design: .rounded))
+                            .foregroundStyle(color1)
+                        Text(currentValue1)
+                            .font(.system(size: 24, weight: .bold, design: .rounded))
+                            .foregroundStyle(
+                                .linearGradient(
+                                    colors: [color1, color1.opacity(0.7)],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                            .contentTransition(.numericText())
+                    }
+
+                    // Second value
+                    HStack(spacing: 6) {
+                        Text(label2)
+                            .font(.system(size: 11, weight: .semibold, design: .rounded))
+                            .foregroundStyle(color2)
+                        Text(currentValue2)
+                            .font(.system(size: 24, weight: .bold, design: .rounded))
+                            .foregroundStyle(
+                                .linearGradient(
+                                    colors: [color2, color2.opacity(0.7)],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                            .contentTransition(.numericText())
+                    }
+                }
+            }
+
+            // Dual line chart
+            DualLineChartView(
+                data1: data1,
+                data2: data2,
+                maxValue: maxValue,
+                color1: color1,
+                color2: color2,
+                label1: label1,
+                label2: label2
+            )
+            .frame(height: 90)
+        }
+        .padding(18)
+        .background {
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .fill(.ultraThinMaterial)
+                .shadow(color: color1.opacity(isPressed ? 0.2 : 0.1), radius: isPressed ? 8 : 12, x: 0, y: isPressed ? 4 : 6)
+        }
+        .overlay {
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .strokeBorder(
+                    .linearGradient(
+                        colors: [
+                            color1.opacity(0.4),
+                            color1.opacity(0.1),
+                            .clear
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    lineWidth: 1.5
+                )
+        }
+        .scaleEffect(isPressed ? 0.98 : 1.0)
+        .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isPressed)
+    }
+}
+
 // MARK: - Compact Modern Metric Card
 
 @available(iOS 17.0, *)
@@ -176,7 +315,7 @@ struct CompactModernMetricCardView: View {
 #Preview {
     VStack(spacing: 16) {
         ModernMetricCardView(
-            type: .cpu,
+            type: .cpuTotal,
             currentValue: "45%",
             subtitle: "User: 30% • System: 15%",
             data: [20, 35, 45, 30, 55, 70, 45, 60, 40, 50],
@@ -185,7 +324,7 @@ struct CompactModernMetricCardView: View {
         )
 
         CompactModernMetricCardView(
-            type: .memory,
+            type: .memoryTotal,
             currentValue: "3.2 GB",
             data: [40, 42, 45, 48, 50, 52, 55],
             maxValue: 100,

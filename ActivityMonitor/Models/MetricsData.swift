@@ -10,17 +10,37 @@ import Foundation
 // MARK: - Metric Types
 
 enum MetricType: String, CaseIterable, Codable {
-    case cpu = "CPU"
-    case memory = "Memory"
+    case cpuUser = "CPU User"
+    case cpuSystem = "CPU System"
+    case cpuTotal = "CPU Total"
+    case memoryActive = "Memory Active"
+    case memoryInactive = "Memory Inactive"
+    case memoryWired = "Memory Wired"
+    case memoryCompressed = "Memory Compressed"
+    case memoryTotal = "Memory Total"
     case network = "Network"
     case storage = "Storage"
+    case battery = "Battery"
+    case diskIORead = "Disk I/O Read"
+    case diskIOWrite = "Disk I/O Write"
+    case diskIOTotal = "Disk I/O Total"
 
     var icon: String {
         switch self {
-        case .cpu: return "cpu"
-        case .memory: return "memorychip"
+        case .cpuUser: return "person.fill"
+        case .cpuSystem: return "gearshape.fill"
+        case .cpuTotal: return "cpu"
+        case .memoryActive: return "bolt.fill"
+        case .memoryInactive: return "pause.fill"
+        case .memoryWired: return "pin.fill"
+        case .memoryCompressed: return "arrow.down.square.fill"
+        case .memoryTotal: return "memorychip"
         case .network: return "network"
         case .storage: return "internaldrive"
+        case .battery: return "battery.100"
+        case .diskIORead: return "arrow.down.circle"
+        case .diskIOWrite: return "arrow.up.circle"
+        case .diskIOTotal: return "cylinder.split.1x2"
         }
     }
 }
@@ -188,6 +208,67 @@ struct StorageMetrics: Codable {
     )
 }
 
+// MARK: - Battery Metrics
+
+struct BatteryMetrics: Codable {
+    let level: Double // Percentage 0-100
+    let state: BatteryState
+    let isCharging: Bool
+    let timestamp: Date
+
+    enum BatteryState: String, Codable {
+        case unknown
+        case unplugged
+        case charging
+        case full
+    }
+
+    var levelPercentage: Double {
+        return level
+    }
+
+    static let zero = BatteryMetrics(
+        level: 0,
+        state: .unknown,
+        isCharging: false,
+        timestamp: Date()
+    )
+}
+
+// MARK: - Disk I/O Metrics
+
+struct DiskIOMetrics: Codable {
+    let readBytes: UInt64
+    let writeBytes: UInt64
+    let readSpeed: Double // Bytes per second
+    let writeSpeed: Double // Bytes per second
+    let timestamp: Date
+
+    var readSpeedMBps: Double {
+        return readSpeed / 1_048_576.0
+    }
+
+    var writeSpeedMBps: Double {
+        return writeSpeed / 1_048_576.0
+    }
+
+    var totalReadMB: Double {
+        return Double(readBytes) / 1_048_576.0
+    }
+
+    var totalWriteMB: Double {
+        return Double(writeBytes) / 1_048_576.0
+    }
+
+    static let zero = DiskIOMetrics(
+        readBytes: 0,
+        writeBytes: 0,
+        readSpeed: 0,
+        writeSpeed: 0,
+        timestamp: Date()
+    )
+}
+
 // MARK: - Metrics Snapshot
 
 struct MetricsSnapshot: Codable {
@@ -195,6 +276,8 @@ struct MetricsSnapshot: Codable {
     let memory: MemoryMetrics
     let network: NetworkMetrics
     let storage: StorageMetrics
+    let battery: BatteryMetrics
+    let diskIO: DiskIOMetrics
     let timestamp: Date
 
     static let zero = MetricsSnapshot(
@@ -202,6 +285,8 @@ struct MetricsSnapshot: Codable {
         memory: .zero,
         network: .zero,
         storage: .zero,
+        battery: .zero,
+        diskIO: .zero,
         timestamp: Date()
     )
 }

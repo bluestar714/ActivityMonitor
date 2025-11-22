@@ -32,9 +32,9 @@ struct AppSettings: Codable {
         historyDuration: 300.0, // 5 minutes
         maxDataPoints: 300,
         showDetailedCPU: false, // Default to total view
-        widgetMetric1: .cpu, // Default to CPU
-        widgetMetric2: .memory, // Default to Memory
-        pipMetric: .cpu, // Default to CPU for PiP
+        widgetMetric1: .cpuTotal, // Default to CPU Total
+        widgetMetric2: .memoryTotal, // Default to Memory Total
+        pipMetric: .cpuTotal, // Default to CPU Total for PiP
         appTheme: .dark, // Default to Dark theme
         hapticsEnabled: true // Default to enabled
     )

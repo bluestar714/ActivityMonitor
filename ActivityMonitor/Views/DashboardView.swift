@@ -170,21 +170,63 @@ struct DashboardView: View {
                     .id("memory-compressed")
                 }
 
-                // Network Metric
-                if settingsManager.isMetricEnabled(.network) {
+                // Network Total Metric
+                if settingsManager.isMetricEnabled(.networkTotal) {
                     ModernMetricCardView(
-                        type: .network,
-                        currentValue: networkCurrentValue,
-                        subtitle: networkSubtitle,
-                        data: metricsManager.networkHistory.map { $0.downloadSpeedMBps },
-                        maxValue: maxNetworkSpeed,
+                        type: .networkTotal,
+                        currentValue: networkTotalValue,
+                        subtitle: networkTotalSubtitle,
+                        data: metricsManager.getHistory(for: .networkTotal),
+                        maxValue: maxNetworkTotalSpeed,
                         color: .orange
                     )
                     .transition(.asymmetric(
                         insertion: .scale(scale: 0.9).combined(with: .opacity).combined(with: .move(edge: .top)),
                         removal: .scale(scale: 0.9).combined(with: .opacity)
                     ))
-                    .id("network")
+                    .id("network-total")
+                    .onTapGesture {
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                            settingsManager.settings.showDetailedNetwork.toggle()
+                        }
+                    }
+                    .sensoryFeedback(.selection, trigger: settingsManager.settings.showDetailedNetwork) { _, _ in
+                        settingsManager.settings.hapticsEnabled
+                    }
+                }
+
+                // Network Download Metric
+                if settingsManager.isMetricEnabled(.networkDownload) && settingsManager.settings.showDetailedNetwork {
+                    ModernMetricCardView(
+                        type: .networkDownload,
+                        currentValue: networkDownloadValue,
+                        subtitle: "Download speed",
+                        data: metricsManager.getHistory(for: .networkDownload),
+                        maxValue: maxNetworkDownloadSpeed,
+                        color: .green
+                    )
+                    .transition(.asymmetric(
+                        insertion: .scale(scale: 0.9).combined(with: .opacity).combined(with: .move(edge: .top)),
+                        removal: .scale(scale: 0.9).combined(with: .opacity)
+                    ))
+                    .id("network-download")
+                }
+
+                // Network Upload Metric
+                if settingsManager.isMetricEnabled(.networkUpload) && settingsManager.settings.showDetailedNetwork {
+                    ModernMetricCardView(
+                        type: .networkUpload,
+                        currentValue: networkUploadValue,
+                        subtitle: "Upload speed",
+                        data: metricsManager.getHistory(for: .networkUpload),
+                        maxValue: maxNetworkUploadSpeed,
+                        color: .blue
+                    )
+                    .transition(.asymmetric(
+                        insertion: .scale(scale: 0.9).combined(with: .opacity).combined(with: .move(edge: .top)),
+                        removal: .scale(scale: 0.9).combined(with: .opacity)
+                    ))
+                    .id("network-upload")
                 }
 
                 // Storage Metric
@@ -284,6 +326,7 @@ struct DashboardView: View {
             .animation(.spring(response: 0.5, dampingFraction: 0.75, blendDuration: 0.3), value: settingsManager.settings.enabledMetrics)
             .animation(.spring(response: 0.5, dampingFraction: 0.75, blendDuration: 0.3), value: settingsManager.settings.showDetailedCPU)
             .animation(.spring(response: 0.5, dampingFraction: 0.75, blendDuration: 0.3), value: settingsManager.settings.showDetailedMemory)
+            .animation(.spring(response: 0.5, dampingFraction: 0.75, blendDuration: 0.3), value: settingsManager.settings.showDetailedNetwork)
             .animation(.spring(response: 0.5, dampingFraction: 0.75, blendDuration: 0.3), value: settingsManager.settings.showDetailedDiskIO)
             }
             .background {
@@ -387,7 +430,39 @@ struct DashboardView: View {
         return String(format: "%.1f%%", compressedPercentage)
     }
 
-    private var networkCurrentValue: String {
+    private var networkTotalValue: String {
+        let network = metricsManager.currentMetrics.network
+        let total = network.downloadSpeedMBps + network.uploadSpeedMBps
+        if total >= 1.0 {
+            return String(format: "%.1f MB/s", total)
+        } else {
+            return String(format: "%.0f KB/s", total * 1024)
+        }
+    }
+
+    private var networkTotalSubtitle: String {
+        let network = metricsManager.currentMetrics.network
+        let download = network.downloadSpeedMBps
+        let upload = network.uploadSpeedMBps
+
+        let downloadStr: String
+        if download >= 1.0 {
+            downloadStr = String(format: "↓ %.1f MB/s", download)
+        } else {
+            downloadStr = String(format: "↓ %.0f KB/s", download * 1024)
+        }
+
+        let uploadStr: String
+        if upload >= 1.0 {
+            uploadStr = String(format: "↑ %.1f MB/s", upload)
+        } else {
+            uploadStr = String(format: "↑ %.0f KB/s", upload * 1024)
+        }
+
+        return "\(downloadStr) • \(uploadStr) • Tap for details"
+    }
+
+    private var networkDownloadValue: String {
         let network = metricsManager.currentMetrics.network
         let download = network.downloadSpeedMBps
         if download >= 1.0 {
@@ -397,21 +472,35 @@ struct DashboardView: View {
         }
     }
 
-    private var networkSubtitle: String {
+    private var networkUploadValue: String {
         let network = metricsManager.currentMetrics.network
         let upload = network.uploadSpeedMBps
-        let uploadStr: String
         if upload >= 1.0 {
-            uploadStr = String(format: "%.1f MB/s", upload)
+            return String(format: "%.1f MB/s", upload)
         } else {
-            uploadStr = String(format: "%.0f KB/s", upload * 1024)
+            return String(format: "%.0f KB/s", upload * 1024)
         }
-        return "Upload: \(uploadStr)"
     }
 
-    private var maxNetworkSpeed: Double {
+    private var maxNetworkDownloadSpeed: Double {
+        let currentDownload = metricsManager.currentMetrics.network.downloadSpeedMBps
         let maxDownload = metricsManager.networkHistory.map { $0.downloadSpeedMBps }.max() ?? 1.0
-        return max(maxDownload * 1.5, 1.0)
+        let overallMax = max(currentDownload, maxDownload)
+        return max(overallMax * 1.5, 1.0)
+    }
+
+    private var maxNetworkUploadSpeed: Double {
+        let currentUpload = metricsManager.currentMetrics.network.uploadSpeedMBps
+        let maxUpload = metricsManager.networkHistory.map { $0.uploadSpeedMBps }.max() ?? 1.0
+        let overallMax = max(currentUpload, maxUpload)
+        return max(overallMax * 1.5, 1.0)
+    }
+
+    private var maxNetworkTotalSpeed: Double {
+        let currentTotal = metricsManager.currentMetrics.network.downloadSpeedMBps + metricsManager.currentMetrics.network.uploadSpeedMBps
+        let maxTotal = metricsManager.networkHistory.map { $0.downloadSpeedMBps + $0.uploadSpeedMBps }.max() ?? 1.0
+        let overallMax = max(currentTotal, maxTotal)
+        return max(overallMax * 1.5, 1.0)
     }
 
     private var storageSubtitle: String {

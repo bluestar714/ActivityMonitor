@@ -60,9 +60,15 @@ struct PiPMetricsView: View {
             return String(format: "%.1f%%", compressedPercentage)
         case .memoryTotal:
             return String(format: "%.1f%%", metricsManager.currentMetrics.memory.usagePercentage)
-        case .network:
+        case .networkDownload:
             let download = metricsManager.currentMetrics.network.downloadSpeedMBps
             return download >= 1.0 ? String(format: "%.1f MB/s", download) : String(format: "%.0f KB/s", download * 1024)
+        case .networkUpload:
+            let upload = metricsManager.currentMetrics.network.uploadSpeedMBps
+            return upload >= 1.0 ? String(format: "%.1f MB/s", upload) : String(format: "%.0f KB/s", upload * 1024)
+        case .networkTotal:
+            let total = metricsManager.currentMetrics.network.downloadSpeedMBps + metricsManager.currentMetrics.network.uploadSpeedMBps
+            return total >= 1.0 ? String(format: "%.1f MB/s", total) : String(format: "%.0f KB/s", total * 1024)
         case .storage:
             return String(format: "%.1f%%", metricsManager.currentMetrics.storage.usagePercentage)
         case .battery:
@@ -99,8 +105,12 @@ struct PiPMetricsView: View {
             return metricsManager.getHistory(for: .memoryCompressed)
         case .memoryTotal:
             return metricsManager.getHistory(for: .memoryTotal)
-        case .network:
-            return metricsManager.networkHistory.map { $0.downloadSpeedMBps }
+        case .networkDownload:
+            return metricsManager.getHistory(for: .networkDownload)
+        case .networkUpload:
+            return metricsManager.getHistory(for: .networkUpload)
+        case .networkTotal:
+            return metricsManager.getHistory(for: .networkTotal)
         case .storage:
             return metricsManager.getHistory(for: .storage)
         case .battery:
@@ -124,7 +134,9 @@ struct PiPMetricsView: View {
         case .memoryWired: return .purple
         case .memoryCompressed: return .pink
         case .memoryTotal: return .green
-        case .network: return .orange
+        case .networkDownload: return .green
+        case .networkUpload: return .blue
+        case .networkTotal: return .orange
         case .storage: return .purple
         case .battery: return .yellow
         case .diskIORead: return .cyan
@@ -143,9 +155,21 @@ struct PiPMetricsView: View {
             return 100
         case .battery:
             return 100
-        case .network:
+        case .networkDownload:
+            let currentDownload = metricsManager.currentMetrics.network.downloadSpeedMBps
             let maxDownload = metricsManager.networkHistory.map { $0.downloadSpeedMBps }.max() ?? 1.0
-            return max(maxDownload * 1.5, 1.0)
+            let overallMax = max(currentDownload, maxDownload)
+            return max(overallMax * 1.5, 1.0)
+        case .networkUpload:
+            let currentUpload = metricsManager.currentMetrics.network.uploadSpeedMBps
+            let maxUpload = metricsManager.networkHistory.map { $0.uploadSpeedMBps }.max() ?? 1.0
+            let overallMax = max(currentUpload, maxUpload)
+            return max(overallMax * 1.5, 1.0)
+        case .networkTotal:
+            let currentTotal = metricsManager.currentMetrics.network.downloadSpeedMBps + metricsManager.currentMetrics.network.uploadSpeedMBps
+            let maxTotal = metricsManager.networkHistory.map { $0.downloadSpeedMBps + $0.uploadSpeedMBps }.max() ?? 1.0
+            let overallMax = max(currentTotal, maxTotal)
+            return max(overallMax * 1.5, 1.0)
         case .diskIORead:
             let maxRead = metricsManager.diskIOHistory.map { $0.readSpeedMBps }.max() ?? 1.0
             return max(maxRead * 1.5, 1.0)
@@ -213,12 +237,33 @@ struct PiPMetricsView: View {
                 ("Total", String(format: "%.1f GB", memory.totalGB)),
                 ("Free", String(format: "%.1f GB", memory.freeGB))
             ]
-        case .network:
+        case .networkDownload:
             let network = metricsManager.currentMetrics.network
-            let upload = network.uploadSpeedMBps
-            let uploadStr = upload >= 1.0 ? String(format: "%.1f MB/s", upload) : String(format: "%.0f KB/s", upload * 1024)
+            let total = network.downloadSpeedMBps + network.uploadSpeedMBps
+            let totalStr = total >= 1.0 ? String(format: "%.1f MB/s", total) : String(format: "%.0f KB/s", total * 1024)
             return [
                 ("Download", metricValue),
+                ("Total", totalStr),
+                ("", "")
+            ]
+        case .networkUpload:
+            let network = metricsManager.currentMetrics.network
+            let total = network.downloadSpeedMBps + network.uploadSpeedMBps
+            let totalStr = total >= 1.0 ? String(format: "%.1f MB/s", total) : String(format: "%.0f KB/s", total * 1024)
+            return [
+                ("Upload", metricValue),
+                ("Total", totalStr),
+                ("", "")
+            ]
+        case .networkTotal:
+            let network = metricsManager.currentMetrics.network
+            let download = network.downloadSpeedMBps
+            let upload = network.uploadSpeedMBps
+
+            let downloadStr = download >= 1.0 ? String(format: "%.1f MB/s", download) : String(format: "%.0f KB/s", download * 1024)
+            let uploadStr = upload >= 1.0 ? String(format: "%.1f MB/s", upload) : String(format: "%.0f KB/s", upload * 1024)
+            return [
+                ("Download", downloadStr),
                 ("Upload", uploadStr),
                 ("", "")
             ]
@@ -295,7 +340,8 @@ struct PiPMetricsView: View {
             if !metricHistory.isEmpty {
                 HStack(alignment: .bottom, spacing: 4) {
                     ForEach(Array(metricHistory.suffix(20).enumerated()), id: \.offset) { index, value in
-                        let normalizedHeight = selectedMetric == .network
+                        let isNetworkMetric = selectedMetric == .networkDownload || selectedMetric == .networkUpload || selectedMetric == .networkTotal
+                        let normalizedHeight = isNetworkMetric
                             ? CGFloat(value / metricMaxValue * 120)
                             : CGFloat(value * 1.2)
 

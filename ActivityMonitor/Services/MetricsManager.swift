@@ -105,7 +105,8 @@ class MetricsManager {
             }
         }
 
-        if settingsManager.isMetricEnabled(.network) {
+        // Network history is collected if any Network metric is enabled
+        if settingsManager.isMetricEnabled(.networkDownload) || settingsManager.isMetricEnabled(.networkUpload) || settingsManager.isMetricEnabled(.networkTotal) {
             networkHistory.append(snapshot.network)
             if networkHistory.count > maxDataPoints {
                 networkHistory.removeFirst()
@@ -172,8 +173,12 @@ class MetricsManager {
             return memoryHistory.map { Double($0.compressed) / Double($0.total) * 100.0 }
         case .memoryTotal:
             return memoryHistory.map { $0.usagePercentage }
-        case .network:
-            return networkHistory.map { $0.downloadSpeed }
+        case .networkDownload:
+            return networkHistory.map { $0.downloadSpeedMBps }
+        case .networkUpload:
+            return networkHistory.map { $0.uploadSpeedMBps }
+        case .networkTotal:
+            return networkHistory.map { $0.downloadSpeedMBps + $0.uploadSpeedMBps }
         case .storage:
             return storageHistory.map { $0.usagePercentage }
         case .battery:

@@ -342,7 +342,9 @@ struct SettingsView: View {
         case .memoryWired: return .purple
         case .memoryCompressed: return .pink
         case .memoryTotal: return .green
-        case .network: return .orange
+        case .networkDownload: return .green
+        case .networkUpload: return .blue
+        case .networkTotal: return .orange
         case .storage: return .purple
         case .battery: return .yellow
         case .diskIORead: return .cyan

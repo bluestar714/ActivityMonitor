@@ -153,8 +153,12 @@ struct CompactTwoMetricsView: View {
             return "\(Int(percentage))%"
         case .memoryTotal:
             return "\(Int(metrics.memory.usagePercentage))%"
-        case .network:
+        case .networkDownload:
             return String(format: "%.1f MB/s", metrics.network.downloadSpeedMBps)
+        case .networkUpload:
+            return String(format: "%.1f MB/s", metrics.network.uploadSpeedMBps)
+        case .networkTotal:
+            return String(format: "%.1f MB/s", metrics.network.downloadSpeedMBps + metrics.network.uploadSpeedMBps)
         case .storage:
             return String(format: "%.1f GB", metrics.storage.freeSpaceGB)
         case .battery:
@@ -178,7 +182,9 @@ struct CompactTwoMetricsView: View {
         case .memoryWired: return .purple
         case .memoryCompressed: return .pink
         case .memoryTotal: return .green
-        case .network: return .purple
+        case .networkDownload: return .green
+        case .networkUpload: return .blue
+        case .networkTotal: return .orange
         case .storage: return .orange
         case .battery: return .yellow
         case .diskIORead: return .cyan
@@ -265,7 +271,11 @@ struct MediumTwoMetricsView: View {
             return "\(Int(percentage))%"
         case .memoryTotal:
             return "\(Int(metrics.memory.usagePercentage))%"
-        case .network:
+        case .networkDownload:
+            return String(format: "%.1f MB/s", metrics.network.downloadSpeedMBps)
+        case .networkUpload:
+            return String(format: "%.1f MB/s", metrics.network.uploadSpeedMBps)
+        case .networkTotal:
             let speed = metrics.network.downloadSpeedMBps
             if speed >= 1.0 {
                 return String(format: "%.1f", speed)
@@ -303,7 +313,11 @@ struct MediumTwoMetricsView: View {
             return String(format: "%.1f GB", metrics.memory.compressedGB)
         case .memoryTotal:
             return String(format: "%.1f/%.1f GB", metrics.memory.usedGB, metrics.memory.totalGB)
-        case .network:
+        case .networkDownload:
+            return String(format: "%.1f MB/s", metrics.network.downloadSpeedMBps)
+        case .networkUpload:
+            return String(format: "%.1f MB/s", metrics.network.uploadSpeedMBps)
+        case .networkTotal:
             let speed = metrics.network.downloadSpeedMBps
             return speed >= 1.0 ? "MB/s" : "KB/s"
         case .storage:
@@ -329,7 +343,9 @@ struct MediumTwoMetricsView: View {
         case .memoryWired: return .purple
         case .memoryCompressed: return .pink
         case .memoryTotal: return .green
-        case .network: return .purple
+        case .networkDownload: return .green
+        case .networkUpload: return .blue
+        case .networkTotal: return .orange
         case .storage: return .orange
         case .battery: return .yellow
         case .diskIORead: return .cyan
@@ -425,8 +441,12 @@ struct LargeTwoMetricsView: View {
             return "\(Int(percentage))%"
         case .memoryTotal:
             return "\(Int(metrics.memory.usagePercentage))%"
-        case .network:
+        case .networkDownload:
             return String(format: "%.1f MB/s", metrics.network.downloadSpeedMBps)
+        case .networkUpload:
+            return String(format: "%.1f MB/s", metrics.network.uploadSpeedMBps)
+        case .networkTotal:
+            return String(format: "%.1f MB/s", metrics.network.downloadSpeedMBps + metrics.network.uploadSpeedMBps)
         case .storage:
             return String(format: "%.1f GB", metrics.storage.freeSpaceGB)
         case .battery:
@@ -486,7 +506,17 @@ struct LargeTwoMetricsView: View {
                 "Free: \(String(format: "%.1f", metrics.memory.freeGB)) GB",
                 "Total: \(String(format: "%.1f", metrics.memory.totalGB)) GB"
             ]
-        case .network:
+        case .networkDownload:
+            return [
+                "Download: \(String(format: "%.1f", metrics.network.downloadSpeedMBps)) MB/s",
+                "Total: \(String(format: "%.1f", metrics.network.downloadSpeedMBps + metrics.network.uploadSpeedMBps)) MB/s"
+            ]
+        case .networkUpload:
+            return [
+                "Upload: \(String(format: "%.1f", metrics.network.uploadSpeedMBps)) MB/s",
+                "Total: \(String(format: "%.1f", metrics.network.downloadSpeedMBps + metrics.network.uploadSpeedMBps)) MB/s"
+            ]
+        case .networkTotal:
             return [
                 "Download: \(String(format: "%.1f", metrics.network.downloadSpeedMBps)) MB/s",
                 "Upload: \(String(format: "%.1f", metrics.network.uploadSpeedMBps)) MB/s"
@@ -531,7 +561,9 @@ struct LargeTwoMetricsView: View {
         case .memoryWired: return .purple
         case .memoryCompressed: return .pink
         case .memoryTotal: return .green
-        case .network: return .purple
+        case .networkDownload: return .green
+        case .networkUpload: return .blue
+        case .networkTotal: return .orange
         case .storage: return .orange
         case .battery: return .yellow
         case .diskIORead: return .cyan

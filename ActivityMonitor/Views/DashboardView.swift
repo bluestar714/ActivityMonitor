@@ -18,40 +18,6 @@ struct DashboardView: View {
             // Main content
             ScrollView {
             VStack(spacing: 18) {
-                // CPU User Metric
-                if settingsManager.isMetricEnabled(.cpuUser) {
-                    ModernMetricCardView(
-                        type: .cpuUser,
-                        currentValue: cpuUserValue,
-                        subtitle: "User processes",
-                        data: metricsManager.cpuHistory.map { $0.userTime },
-                        maxValue: 100,
-                        color: .orange
-                    )
-                    .transition(.asymmetric(
-                        insertion: .scale(scale: 0.9).combined(with: .opacity).combined(with: .move(edge: .top)),
-                        removal: .scale(scale: 0.9).combined(with: .opacity)
-                    ))
-                    .id("cpu-user")
-                }
-
-                // CPU System Metric
-                if settingsManager.isMetricEnabled(.cpuSystem) {
-                    ModernMetricCardView(
-                        type: .cpuSystem,
-                        currentValue: cpuSystemValue,
-                        subtitle: "System processes",
-                        data: metricsManager.cpuHistory.map { $0.systemTime },
-                        maxValue: 100,
-                        color: .red
-                    )
-                    .transition(.asymmetric(
-                        insertion: .scale(scale: 0.9).combined(with: .opacity).combined(with: .move(edge: .top)),
-                        removal: .scale(scale: 0.9).combined(with: .opacity)
-                    ))
-                    .id("cpu-system")
-                }
-
                 // CPU Total Metric
                 if settingsManager.isMetricEnabled(.cpuTotal) {
                     ModernMetricCardView(
@@ -77,72 +43,38 @@ struct DashboardView: View {
                     }
                 }
 
-                // Memory Active Metric
-                if settingsManager.isMetricEnabled(.memoryActive) {
+                // CPU User Metric
+                if settingsManager.isMetricEnabled(.cpuUser) && settingsManager.settings.showDetailedCPU {
                     ModernMetricCardView(
-                        type: .memoryActive,
-                        currentValue: memoryActiveValue,
-                        subtitle: "Active memory",
-                        data: metricsManager.memoryHistory.map { Double($0.active) / Double($0.total) * 100.0 },
+                        type: .cpuUser,
+                        currentValue: cpuUserValue,
+                        subtitle: "User processes",
+                        data: metricsManager.cpuHistory.map { $0.userTime },
                         maxValue: 100,
-                        color: .green
+                        color: .orange
                     )
                     .transition(.asymmetric(
                         insertion: .scale(scale: 0.9).combined(with: .opacity).combined(with: .move(edge: .top)),
                         removal: .scale(scale: 0.9).combined(with: .opacity)
                     ))
-                    .id("memory-active")
+                    .id("cpu-user")
                 }
 
-                // Memory Inactive Metric
-                if settingsManager.isMetricEnabled(.memoryInactive) {
+                // CPU System Metric
+                if settingsManager.isMetricEnabled(.cpuSystem) && settingsManager.settings.showDetailedCPU {
                     ModernMetricCardView(
-                        type: .memoryInactive,
-                        currentValue: memoryInactiveValue,
-                        subtitle: "Inactive memory",
-                        data: metricsManager.memoryHistory.map { Double($0.inactive) / Double($0.total) * 100.0 },
+                        type: .cpuSystem,
+                        currentValue: cpuSystemValue,
+                        subtitle: "System processes",
+                        data: metricsManager.cpuHistory.map { $0.systemTime },
                         maxValue: 100,
-                        color: .yellow
+                        color: .red
                     )
                     .transition(.asymmetric(
                         insertion: .scale(scale: 0.9).combined(with: .opacity).combined(with: .move(edge: .top)),
                         removal: .scale(scale: 0.9).combined(with: .opacity)
                     ))
-                    .id("memory-inactive")
-                }
-
-                // Memory Wired Metric
-                if settingsManager.isMetricEnabled(.memoryWired) {
-                    ModernMetricCardView(
-                        type: .memoryWired,
-                        currentValue: memoryWiredValue,
-                        subtitle: "Wired memory",
-                        data: metricsManager.memoryHistory.map { Double($0.wired) / Double($0.total) * 100.0 },
-                        maxValue: 100,
-                        color: .purple
-                    )
-                    .transition(.asymmetric(
-                        insertion: .scale(scale: 0.9).combined(with: .opacity).combined(with: .move(edge: .top)),
-                        removal: .scale(scale: 0.9).combined(with: .opacity)
-                    ))
-                    .id("memory-wired")
-                }
-
-                // Memory Compressed Metric
-                if settingsManager.isMetricEnabled(.memoryCompressed) {
-                    ModernMetricCardView(
-                        type: .memoryCompressed,
-                        currentValue: memoryCompressedValue,
-                        subtitle: "Compressed memory",
-                        data: metricsManager.memoryHistory.map { Double($0.compressed) / Double($0.total) * 100.0 },
-                        maxValue: 100,
-                        color: .pink
-                    )
-                    .transition(.asymmetric(
-                        insertion: .scale(scale: 0.9).combined(with: .opacity).combined(with: .move(edge: .top)),
-                        removal: .scale(scale: 0.9).combined(with: .opacity)
-                    ))
-                    .id("memory-compressed")
+                    .id("cpu-system")
                 }
 
                 // Memory Total Metric
@@ -160,6 +92,82 @@ struct DashboardView: View {
                         removal: .scale(scale: 0.9).combined(with: .opacity)
                     ))
                     .id("memory-total")
+                    .onTapGesture {
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                            settingsManager.settings.showDetailedMemory.toggle()
+                        }
+                    }
+                    .sensoryFeedback(.selection, trigger: settingsManager.settings.showDetailedMemory) { _, _ in
+                        settingsManager.settings.hapticsEnabled
+                    }
+                }
+
+                // Memory Active Metric
+                if settingsManager.isMetricEnabled(.memoryActive) && settingsManager.settings.showDetailedMemory {
+                    ModernMetricCardView(
+                        type: .memoryActive,
+                        currentValue: memoryActiveValue,
+                        subtitle: "Active memory",
+                        data: metricsManager.memoryHistory.map { Double($0.active) / Double($0.total) * 100.0 },
+                        maxValue: 100,
+                        color: .green
+                    )
+                    .transition(.asymmetric(
+                        insertion: .scale(scale: 0.9).combined(with: .opacity).combined(with: .move(edge: .top)),
+                        removal: .scale(scale: 0.9).combined(with: .opacity)
+                    ))
+                    .id("memory-active")
+                }
+
+                // Memory Inactive Metric
+                if settingsManager.isMetricEnabled(.memoryInactive) && settingsManager.settings.showDetailedMemory {
+                    ModernMetricCardView(
+                        type: .memoryInactive,
+                        currentValue: memoryInactiveValue,
+                        subtitle: "Inactive memory",
+                        data: metricsManager.memoryHistory.map { Double($0.inactive) / Double($0.total) * 100.0 },
+                        maxValue: 100,
+                        color: .yellow
+                    )
+                    .transition(.asymmetric(
+                        insertion: .scale(scale: 0.9).combined(with: .opacity).combined(with: .move(edge: .top)),
+                        removal: .scale(scale: 0.9).combined(with: .opacity)
+                    ))
+                    .id("memory-inactive")
+                }
+
+                // Memory Wired Metric
+                if settingsManager.isMetricEnabled(.memoryWired) && settingsManager.settings.showDetailedMemory {
+                    ModernMetricCardView(
+                        type: .memoryWired,
+                        currentValue: memoryWiredValue,
+                        subtitle: "Wired memory",
+                        data: metricsManager.memoryHistory.map { Double($0.wired) / Double($0.total) * 100.0 },
+                        maxValue: 100,
+                        color: .purple
+                    )
+                    .transition(.asymmetric(
+                        insertion: .scale(scale: 0.9).combined(with: .opacity).combined(with: .move(edge: .top)),
+                        removal: .scale(scale: 0.9).combined(with: .opacity)
+                    ))
+                    .id("memory-wired")
+                }
+
+                // Memory Compressed Metric
+                if settingsManager.isMetricEnabled(.memoryCompressed) && settingsManager.settings.showDetailedMemory {
+                    ModernMetricCardView(
+                        type: .memoryCompressed,
+                        currentValue: memoryCompressedValue,
+                        subtitle: "Compressed memory",
+                        data: metricsManager.memoryHistory.map { Double($0.compressed) / Double($0.total) * 100.0 },
+                        maxValue: 100,
+                        color: .pink
+                    )
+                    .transition(.asymmetric(
+                        insertion: .scale(scale: 0.9).combined(with: .opacity).combined(with: .move(edge: .top)),
+                        removal: .scale(scale: 0.9).combined(with: .opacity)
+                    ))
+                    .id("memory-compressed")
                 }
 
                 // Network Metric
@@ -213,8 +221,33 @@ struct DashboardView: View {
                     .id("battery")
                 }
 
+                // Disk I/O Total Metric
+                if settingsManager.isMetricEnabled(.diskIOTotal) {
+                    ModernMetricCardView(
+                        type: .diskIOTotal,
+                        currentValue: diskIOTotalValue,
+                        subtitle: "Combined read and write • Tap for details",
+                        data: metricsManager.diskIOHistory.map { $0.readSpeedMBps + $0.writeSpeedMBps },
+                        maxValue: maxDiskIOTotalSpeed,
+                        color: .purple
+                    )
+                    .transition(.asymmetric(
+                        insertion: .scale(scale: 0.9).combined(with: .opacity).combined(with: .move(edge: .top)),
+                        removal: .scale(scale: 0.9).combined(with: .opacity)
+                    ))
+                    .id("diskIO-total")
+                    .onTapGesture {
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                            settingsManager.settings.showDetailedDiskIO.toggle()
+                        }
+                    }
+                    .sensoryFeedback(.selection, trigger: settingsManager.settings.showDetailedDiskIO) { _, _ in
+                        settingsManager.settings.hapticsEnabled
+                    }
+                }
+
                 // Disk I/O Read Metric
-                if settingsManager.isMetricEnabled(.diskIORead) {
+                if settingsManager.isMetricEnabled(.diskIORead) && settingsManager.settings.showDetailedDiskIO {
                     ModernMetricCardView(
                         type: .diskIORead,
                         currentValue: diskIOReadValue,
@@ -231,7 +264,7 @@ struct DashboardView: View {
                 }
 
                 // Disk I/O Write Metric
-                if settingsManager.isMetricEnabled(.diskIOWrite) {
+                if settingsManager.isMetricEnabled(.diskIOWrite) && settingsManager.settings.showDetailedDiskIO {
                     ModernMetricCardView(
                         type: .diskIOWrite,
                         currentValue: diskIOWriteValue,
@@ -246,26 +279,12 @@ struct DashboardView: View {
                     ))
                     .id("diskIO-write")
                 }
-
-                // Disk I/O Total Metric
-                if settingsManager.isMetricEnabled(.diskIOTotal) {
-                    ModernMetricCardView(
-                        type: .diskIOTotal,
-                        currentValue: diskIOTotalValue,
-                        subtitle: "Combined read and write",
-                        data: metricsManager.diskIOHistory.map { $0.readSpeedMBps + $0.writeSpeedMBps },
-                        maxValue: maxDiskIOTotalSpeed,
-                        color: .purple
-                    )
-                    .transition(.asymmetric(
-                        insertion: .scale(scale: 0.9).combined(with: .opacity).combined(with: .move(edge: .top)),
-                        removal: .scale(scale: 0.9).combined(with: .opacity)
-                    ))
-                    .id("diskIO-total")
-                }
             }
             .padding(20)
             .animation(.spring(response: 0.5, dampingFraction: 0.75, blendDuration: 0.3), value: settingsManager.settings.enabledMetrics)
+            .animation(.spring(response: 0.5, dampingFraction: 0.75, blendDuration: 0.3), value: settingsManager.settings.showDetailedCPU)
+            .animation(.spring(response: 0.5, dampingFraction: 0.75, blendDuration: 0.3), value: settingsManager.settings.showDetailedMemory)
+            .animation(.spring(response: 0.5, dampingFraction: 0.75, blendDuration: 0.3), value: settingsManager.settings.showDetailedDiskIO)
             }
             .background {
                 Color(.systemGroupedBackground)
@@ -334,7 +353,14 @@ struct DashboardView: View {
 
     private var memorySubtitle: String {
         let memory = metricsManager.currentMetrics.memory
-        return String(format: "%.1f GB / %.1f GB", memory.usedGB, memory.totalGB)
+
+        if settingsManager.settings.showDetailedMemory {
+            // Show total when in detailed mode
+            return String(format: "%.1f GB / %.1f GB", memory.usedGB, memory.totalGB)
+        } else {
+            // Show tap hint when in total mode
+            return String(format: "%.1f GB / %.1f GB • Tap for details", memory.usedGB, memory.totalGB)
+        }
     }
 
     private var memoryActiveValue: String {

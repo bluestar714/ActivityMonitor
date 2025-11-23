@@ -20,6 +20,8 @@ struct AppSettings: Codable {
     var historyDuration: TimeInterval // How long to keep data
     var maxDataPoints: Int
     var showDetailedCPU: Bool // Show User/System breakdown instead of total
+    var showDetailedMemory: Bool // Show Active/Inactive/Wired/Compressed breakdown instead of total
+    var showDetailedDiskIO: Bool // Show Read/Write breakdown instead of total
     var widgetMetric1: MetricType // First metric to show in widget
     var widgetMetric2: MetricType // Second metric to show in widget
     var pipMetric: MetricType // Metric to show in Picture-in-Picture
@@ -32,6 +34,8 @@ struct AppSettings: Codable {
         historyDuration: 300.0, // 5 minutes
         maxDataPoints: 300,
         showDetailedCPU: false, // Default to total view
+        showDetailedMemory: false, // Default to total view
+        showDetailedDiskIO: false, // Default to total view
         widgetMetric1: .cpuTotal, // Default to CPU Total
         widgetMetric2: .memoryTotal, // Default to Memory Total
         pipMetric: .cpuTotal, // Default to CPU Total for PiP

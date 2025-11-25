@@ -20,6 +20,9 @@ struct AppSettings: Codable {
     var historyDuration: TimeInterval // How long to keep data
     var maxDataPoints: Int
     var showDetailedCPU: Bool // Show User/System breakdown instead of total
+    var showDetailedMemory: Bool // Show Active/Inactive/Wired/Compressed breakdown instead of total
+    var showDetailedNetwork: Bool // Show Download/Upload breakdown instead of total
+    var showDetailedDiskIO: Bool // Show Read/Write breakdown instead of total
     var widgetMetric1: MetricType // First metric to show in widget
     var widgetMetric2: MetricType // Second metric to show in widget
     var pipMetric: MetricType // Metric to show in Picture-in-Picture
@@ -27,14 +30,24 @@ struct AppSettings: Codable {
     var hapticsEnabled: Bool // Enable/disable haptic feedback
 
     static let `default` = AppSettings(
-        enabledMetrics: Set(MetricType.allCases),
+        enabledMetrics: [
+            .cpuTotal,
+            .memoryTotal,
+            .networkTotal,
+            .storage,
+            .battery,
+            .diskIOTotal
+        ],
         refreshInterval: 1.0,
         historyDuration: 300.0, // 5 minutes
         maxDataPoints: 300,
         showDetailedCPU: false, // Default to total view
-        widgetMetric1: .cpu, // Default to CPU
-        widgetMetric2: .memory, // Default to Memory
-        pipMetric: .cpu, // Default to CPU for PiP
+        showDetailedMemory: false, // Default to total view
+        showDetailedNetwork: false, // Default to total view
+        showDetailedDiskIO: false, // Default to total view
+        widgetMetric1: .cpuTotal, // Default to CPU Total
+        widgetMetric2: .memoryTotal, // Default to Memory Total
+        pipMetric: .cpuTotal, // Default to CPU Total for PiP
         appTheme: .dark, // Default to Dark theme
         hapticsEnabled: true // Default to enabled
     )
@@ -58,6 +71,20 @@ class SettingsManager {
         if let data = UserDefaults.standard.data(forKey: settingsKey),
            let decoded = try? JSONDecoder().decode(AppSettings.self, from: data) {
             self.settings = decoded
+
+            // Migration: Ensure all three network metrics are enabled
+            // This handles the case where old settings only had .network
+            let networkMetrics: [MetricType] = [.networkDownload, .networkUpload, .networkTotal]
+            let hasAnyNetworkMetric = networkMetrics.contains { settings.enabledMetrics.contains($0) }
+
+            // If none of the new network metrics are present, enable all of them
+            if !hasAnyNetworkMetric {
+                for metric in networkMetrics {
+                    settings.enabledMetrics.insert(metric)
+                }
+                // Save the migrated settings
+                saveSettings()
+            }
         } else {
             self.settings = .default
         }

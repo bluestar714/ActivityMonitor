@@ -10,17 +10,41 @@ import Foundation
 // MARK: - Metric Types
 
 enum MetricType: String, CaseIterable, Codable {
-    case cpu = "CPU"
-    case memory = "Memory"
-    case network = "Network"
+    case cpuUser = "CPU User"
+    case cpuSystem = "CPU System"
+    case cpuTotal = "CPU"
+    case memoryActive = "Memory Active"
+    case memoryInactive = "Memory Inactive"
+    case memoryWired = "Memory Wired"
+    case memoryCompressed = "Memory Compressed"
+    case memoryTotal = "Memory"
+    case networkDownload = "Network Download"
+    case networkUpload = "Network Upload"
+    case networkTotal = "Network"
     case storage = "Storage"
+    case battery = "Battery"
+    case diskIORead = "Disk I/O Read"
+    case diskIOWrite = "Disk I/O Write"
+    case diskIOTotal = "Disk I/O"
 
     var icon: String {
         switch self {
-        case .cpu: return "cpu"
-        case .memory: return "memorychip"
-        case .network: return "network"
+        case .cpuUser: return "person.fill"
+        case .cpuSystem: return "gearshape.fill"
+        case .cpuTotal: return "cpu"
+        case .memoryActive: return "bolt.fill"
+        case .memoryInactive: return "pause.fill"
+        case .memoryWired: return "pin.fill"
+        case .memoryCompressed: return "arrow.down.square.fill"
+        case .memoryTotal: return "memorychip"
+        case .networkDownload: return "arrow.down.circle.fill"
+        case .networkUpload: return "arrow.up.circle.fill"
+        case .networkTotal: return "network"
         case .storage: return "internaldrive"
+        case .battery: return "battery.100"
+        case .diskIORead: return "arrow.down.circle"
+        case .diskIOWrite: return "arrow.up.circle"
+        case .diskIOTotal: return "cylinder.split.1x2"
         }
     }
 }
@@ -143,6 +167,79 @@ struct NetworkMetrics: Codable {
     )
 }
 
+// MARK: - Network Details
+
+struct NetworkDetails: Codable {
+    // Connection Info
+    let interfaceType: String // WiFi, Cellular, Ethernet, etc.
+    let interfaceName: String?
+    let isVPNActive: Bool
+    let isProxyEnabled: Bool
+    let proxyServer: String?
+    let isHotspotActive: Bool
+
+    // IP Configuration
+    let ipv4Address: String?
+    let ipv6Address: String?
+    let subnetMask: String?
+    let defaultGateway: String?
+    let externalIP: String?
+
+    // DNS
+    let dnsServers: [String]
+
+    // WiFi Specific
+    let ssid: String?
+    let bssid: String?
+    let rssi: Int? // Signal strength in dBm
+    let securityType: String?
+    let wifiBand: String? // 2.4 GHz, 5 GHz, 6 GHz
+
+    // Cellular Specific
+    let carrierName: String?
+    let phoneNumber: String?
+    let connectionType: String? // 4G, 5G, LTE, etc.
+    let cellularBand: String? // Band number (e.g., B1, B3, n78, n79)
+    let mobileCountryCode: String?
+    let mobileNetworkCode: String?
+    let isoCountryCode: String?
+    let allowsVOIP: Bool?
+
+    // Data Usage
+    let totalBytesSent: UInt64
+    let totalBytesReceived: UInt64
+
+    static let zero = NetworkDetails(
+        interfaceType: "Unknown",
+        interfaceName: nil,
+        isVPNActive: false,
+        isProxyEnabled: false,
+        proxyServer: nil,
+        isHotspotActive: false,
+        ipv4Address: nil,
+        ipv6Address: nil,
+        subnetMask: nil,
+        defaultGateway: nil,
+        externalIP: nil,
+        dnsServers: [],
+        ssid: nil,
+        bssid: nil,
+        rssi: nil,
+        securityType: nil,
+        wifiBand: nil,
+        carrierName: nil,
+        phoneNumber: nil,
+        connectionType: nil,
+        cellularBand: nil,
+        mobileCountryCode: nil,
+        mobileNetworkCode: nil,
+        isoCountryCode: nil,
+        allowsVOIP: nil,
+        totalBytesSent: 0,
+        totalBytesReceived: 0
+    )
+}
+
 // MARK: - Storage Metrics
 
 struct StorageMetrics: Codable {
@@ -188,6 +285,67 @@ struct StorageMetrics: Codable {
     )
 }
 
+// MARK: - Battery Metrics
+
+struct BatteryMetrics: Codable {
+    let level: Double // Percentage 0-100
+    let state: BatteryState
+    let isCharging: Bool
+    let timestamp: Date
+
+    enum BatteryState: String, Codable {
+        case unknown
+        case unplugged
+        case charging
+        case full
+    }
+
+    var levelPercentage: Double {
+        return level
+    }
+
+    static let zero = BatteryMetrics(
+        level: 0,
+        state: .unknown,
+        isCharging: false,
+        timestamp: Date()
+    )
+}
+
+// MARK: - Disk I/O Metrics
+
+struct DiskIOMetrics: Codable {
+    let readBytes: UInt64
+    let writeBytes: UInt64
+    let readSpeed: Double // Bytes per second
+    let writeSpeed: Double // Bytes per second
+    let timestamp: Date
+
+    var readSpeedMBps: Double {
+        return readSpeed / 1_048_576.0
+    }
+
+    var writeSpeedMBps: Double {
+        return writeSpeed / 1_048_576.0
+    }
+
+    var totalReadMB: Double {
+        return Double(readBytes) / 1_048_576.0
+    }
+
+    var totalWriteMB: Double {
+        return Double(writeBytes) / 1_048_576.0
+    }
+
+    static let zero = DiskIOMetrics(
+        readBytes: 0,
+        writeBytes: 0,
+        readSpeed: 0,
+        writeSpeed: 0,
+        timestamp: Date()
+    )
+}
+
 // MARK: - Metrics Snapshot
 
 struct MetricsSnapshot: Codable {
@@ -195,6 +353,8 @@ struct MetricsSnapshot: Codable {
     let memory: MemoryMetrics
     let network: NetworkMetrics
     let storage: StorageMetrics
+    let battery: BatteryMetrics
+    let diskIO: DiskIOMetrics
     let timestamp: Date
 
     static let zero = MetricsSnapshot(
@@ -202,6 +362,8 @@ struct MetricsSnapshot: Codable {
         memory: .zero,
         network: .zero,
         storage: .zero,
+        battery: .zero,
+        diskIO: .zero,
         timestamp: Date()
     )
 }

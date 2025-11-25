@@ -38,7 +38,7 @@ class SharedDataManager {
         }
     }
 
-    func saveMetricsHistory(cpu: [CPUMetrics], memory: [MemoryMetrics], network: [NetworkMetrics], storage: [StorageMetrics]) {
+    func saveMetricsHistory(cpu: [CPUMetrics], memory: [MemoryMetrics], network: [NetworkMetrics], storage: [StorageMetrics], battery: [BatteryMetrics], diskIO: [DiskIOMetrics]) {
         guard let defaults = userDefaults else { return }
 
         let encoder = JSONEncoder()
@@ -57,6 +57,14 @@ class SharedDataManager {
 
         if let storageData = try? encoder.encode(storage) {
             defaults.set(storageData, forKey: "storageHistory")
+        }
+
+        if let batteryData = try? encoder.encode(battery) {
+            defaults.set(batteryData, forKey: "batteryHistory")
+        }
+
+        if let diskIOData = try? encoder.encode(diskIO) {
+            defaults.set(diskIOData, forKey: "diskIOHistory")
         }
     }
 
@@ -146,14 +154,14 @@ class SharedDataManager {
     func loadWidgetSettings() -> (MetricType, MetricType) {
         guard let defaults = userDefaults else {
             print("⚠️ [SharedDataManager] UserDefaults nil, using default widget settings")
-            return (.cpu, .memory)
+            return (.cpuTotal, .memoryTotal)
         }
 
-        let metric1String = defaults.string(forKey: "widgetMetric1") ?? "CPU"
-        let metric2String = defaults.string(forKey: "widgetMetric2") ?? "Memory"
+        let metric1String = defaults.string(forKey: "widgetMetric1") ?? "CPU Total"
+        let metric2String = defaults.string(forKey: "widgetMetric2") ?? "Memory Total"
 
-        let metric1 = MetricType(rawValue: metric1String) ?? .cpu
-        let metric2 = MetricType(rawValue: metric2String) ?? .memory
+        let metric1 = MetricType(rawValue: metric1String) ?? .cpuTotal
+        let metric2 = MetricType(rawValue: metric2String) ?? .memoryTotal
 
         print("✅ [SharedDataManager] Loaded widget settings - Metric 1: \(metric1.rawValue), Metric 2: \(metric2.rawValue)")
 

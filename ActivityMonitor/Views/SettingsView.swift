@@ -76,34 +76,41 @@ struct SettingsView: View {
 
                 // Enabled Metrics Section
                 Section {
-                    ForEach(MetricType.allCases, id: \.self) { metric in
-                        @Bindable var settings = settingsManager
-
-                        Toggle(isOn: Binding(
-                            get: { settingsManager.isMetricEnabled(metric) },
-                            set: { _ in
-                                withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
-                                    settingsManager.toggleMetric(metric)
-                                }
-                                metricsManager.startMonitoring()
-                            }
-                        )) {
-                            Label {
-                                Text(metric.rawValue)
-                                    .font(.system(size: 16, weight: .medium, design: .rounded))
-                            } icon: {
-                                Image(systemName: metric.icon)
-                                    .foregroundStyle(colorForMetric(metric).gradient)
-                                    .symbolRenderingMode(.multicolor)
-                                    .font(.system(size: 20))
-                                    .symbolEffect(.bounce, value: settingsManager.isMetricEnabled(metric))
-                            }
-                        }
-                        .tint(colorForMetric(metric))
-                        .sensoryFeedback(.selection, trigger: settingsManager.isMetricEnabled(metric)) { _, _ in
-                            settingsManager.settings.hapticsEnabled
-                        }
+                    // CPU
+                    MetricToggle(metric: .cpuTotal)
+                    if settingsManager.isMetricEnabled(.cpuTotal) {
+                        MetricToggle(metric: .cpuUser, isSubItem: true)
+                        MetricToggle(metric: .cpuSystem, isSubItem: true)
                     }
+
+                    // Memory
+                    MetricToggle(metric: .memoryTotal)
+                    if settingsManager.isMetricEnabled(.memoryTotal) {
+                        MetricToggle(metric: .memoryActive, isSubItem: true)
+                        MetricToggle(metric: .memoryInactive, isSubItem: true)
+                        MetricToggle(metric: .memoryWired, isSubItem: true)
+                        MetricToggle(metric: .memoryCompressed, isSubItem: true)
+                    }
+
+                    // Network
+                    MetricToggle(metric: .networkTotal)
+                    if settingsManager.isMetricEnabled(.networkTotal) {
+                        MetricToggle(metric: .networkDownload, isSubItem: true)
+                        MetricToggle(metric: .networkUpload, isSubItem: true)
+                    }
+
+                    // Disk I/O
+                    MetricToggle(metric: .diskIOTotal)
+                    if settingsManager.isMetricEnabled(.diskIOTotal) {
+                        MetricToggle(metric: .diskIORead, isSubItem: true)
+                        MetricToggle(metric: .diskIOWrite, isSubItem: true)
+                    }
+
+                    // Storage
+                    MetricToggle(metric: .storage)
+
+                    // Battery
+                    MetricToggle(metric: .battery)
                 } header: {
                     Text("Enabled Metrics")
                         .font(.system(size: 13, weight: .semibold, design: .rounded))
@@ -139,39 +146,6 @@ struct SettingsView: View {
                         .font(.system(size: 13, weight: .semibold, design: .rounded))
                 } footer: {
                     Text("Lower intervals and more data points use more resources but provide more detailed monitoring.")
-                        .font(.system(size: 13, design: .rounded))
-                }
-
-                // Display Section
-                Section {
-                    @Bindable var settings = settingsManager
-
-                    Toggle(isOn: $settings.settings.showDetailedCPU) {
-                        Label {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("Detailed CPU View")
-                                    .font(.system(size: 16, weight: .medium, design: .rounded))
-                                Text("Show User/System separately")
-                                    .font(.system(size: 13, design: .rounded))
-                                    .foregroundStyle(.secondary)
-                            }
-                        } icon: {
-                            Image(systemName: "cpu")
-                                .foregroundStyle(.blue.gradient)
-                                .symbolRenderingMode(.multicolor)
-                                .font(.system(size: 20))
-                                .symbolEffect(.pulse, value: settings.settings.showDetailedCPU)
-                        }
-                    }
-                    .tint(.blue)
-                    .sensoryFeedback(.selection, trigger: settingsManager.settings.showDetailedCPU) { _, _ in
-                        settingsManager.settings.hapticsEnabled
-                    }
-                } header: {
-                    Text("Display Options")
-                        .font(.system(size: 13, weight: .semibold, design: .rounded))
-                } footer: {
-                    Text("When enabled, CPU metric shows User and System usage separately. Tap the CPU card to quickly toggle this setting.")
                         .font(.system(size: 13, design: .rounded))
                 }
 
@@ -334,10 +308,82 @@ struct SettingsView: View {
 
     private func colorForMetric(_ metric: MetricType) -> Color {
         switch metric {
-        case .cpu: return .blue
-        case .memory: return .green
-        case .network: return .orange
+        case .cpuUser: return .orange
+        case .cpuSystem: return .red
+        case .cpuTotal: return .blue
+        case .memoryActive: return .green
+        case .memoryInactive: return .yellow
+        case .memoryWired: return .purple
+        case .memoryCompressed: return .pink
+        case .memoryTotal: return .green
+        case .networkDownload: return .green
+        case .networkUpload: return .blue
+        case .networkTotal: return .orange
         case .storage: return .purple
+        case .battery: return .yellow
+        case .diskIORead: return .cyan
+        case .diskIOWrite: return Color(red: 1.0, green: 0.2, blue: 0.5)
+        case .diskIOTotal: return .purple
+        }
+    }
+}
+
+// MARK: - Metric Toggle Component
+
+@available(iOS 17.0, *)
+struct MetricToggle: View {
+    @Environment(SettingsManager.self) private var settingsManager
+    @Environment(MetricsManager.self) private var metricsManager
+
+    let metric: MetricType
+    var isSubItem: Bool = false
+
+    var body: some View {
+        Toggle(isOn: Binding(
+            get: { settingsManager.isMetricEnabled(metric) },
+            set: { _ in
+                withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
+                    settingsManager.toggleMetric(metric)
+                }
+                metricsManager.startMonitoring()
+            }
+        )) {
+            Label {
+                Text(metric.rawValue)
+                    .font(.system(size: 16, weight: .medium, design: .rounded))
+            } icon: {
+                Image(systemName: metric.icon)
+                    .foregroundStyle(colorForMetric(metric).gradient)
+                    .symbolRenderingMode(.multicolor)
+                    .font(.system(size: 20))
+                    .symbolEffect(.bounce, value: settingsManager.isMetricEnabled(metric))
+            }
+        }
+        .tint(colorForMetric(metric))
+        .padding(.leading, isSubItem ? 20 : 0)
+        .sensoryFeedback(.selection, trigger: settingsManager.isMetricEnabled(metric)) { _, _ in
+            settingsManager.settings.hapticsEnabled
+        }
+    }
+
+    private func colorForMetric(_ metric: MetricType) -> Color {
+        switch metric {
+        case .cpuUser: return .orange
+        case .cpuSystem: return .red
+        case .cpuTotal: return .blue
+        case .memoryActive: return .green
+        case .memoryInactive: return .yellow
+        case .memoryWired: return .purple
+        case .memoryCompressed: return .pink
+        case .memoryTotal: return .green
+        case .networkDownload: return .green
+        case .networkUpload: return .blue
+        case .networkTotal: return .orange
+        case .storage: return .purple
+        case .battery: return .yellow
+        case .diskIORead: return .cyan
+        case .diskIOWrite: return Color(red: 1.0, green: 0.2, blue: 0.5)
+        case .diskIOTotal: return .purple
         }
     }
 }

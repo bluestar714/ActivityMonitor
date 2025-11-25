@@ -7,6 +7,11 @@
 
 import Foundation
 import UIKit
+import SystemConfiguration
+import SystemConfiguration.CaptiveNetwork
+import CoreTelephony
+import Network
+import NetworkExtension
 
 class SystemMetricsCollector {
 
@@ -238,6 +243,105 @@ class SystemMetricsCollector {
         }
     }
 
+    // MARK: - Battery Metrics
+
+    func collectBatteryMetrics() -> BatteryMetrics {
+        UIDevice.current.isBatteryMonitoringEnabled = true
+
+        let batteryLevel = UIDevice.current.batteryLevel
+        let batteryState = UIDevice.current.batteryState
+
+        let level = batteryLevel >= 0 ? Double(batteryLevel) * 100.0 : 0.0
+
+        let state: BatteryMetrics.BatteryState
+        var isCharging = false
+
+        switch batteryState {
+        case .charging:
+            state = .charging
+            isCharging = true
+        case .full:
+            state = .full
+            isCharging = true
+        case .unplugged:
+            state = .unplugged
+            isCharging = false
+        case .unknown:
+            state = .unknown
+            isCharging = false
+        @unknown default:
+            state = .unknown
+            isCharging = false
+        }
+
+        return BatteryMetrics(
+            level: level,
+            state: state,
+            isCharging: isCharging,
+            timestamp: Date()
+        )
+    }
+
+    // MARK: - Disk I/O Metrics
+
+    private var previousDiskIO: (pageins: UInt64, pageouts: UInt64, timestamp: Date)?
+    private let diskIOLock = NSLock()
+
+    func collectDiskIOMetrics() -> DiskIOMetrics {
+        diskIOLock.lock()
+        defer { diskIOLock.unlock() }
+
+        // Use vm_statistics64 to get system-wide paging activity
+        var vmStats = vm_statistics64()
+        var count = mach_msg_type_number_t(MemoryLayout<vm_statistics64>.size / MemoryLayout<integer_t>.size)
+
+        let result: kern_return_t = withUnsafeMutablePointer(to: &vmStats) {
+            $0.withMemoryRebound(to: integer_t.self, capacity: Int(count)) {
+                host_statistics64(mach_host_self(), HOST_VM_INFO64, $0, &count)
+            }
+        }
+
+        guard result == KERN_SUCCESS else {
+            return .zero
+        }
+
+        let pageSize = UInt64(vm_kernel_page_size)
+
+        // Get total pageins and pageouts (system-wide disk activity)
+        let totalPageins = UInt64(vmStats.pageins)
+        let totalPageouts = UInt64(vmStats.pageouts)
+
+        // Convert pages to bytes
+        let readBytes = totalPageins * pageSize
+        let writeBytes = totalPageouts * pageSize
+
+        var readSpeed: Double = 0.0
+        var writeSpeed: Double = 0.0
+
+        let now = Date()
+
+        if let previous = previousDiskIO {
+            let timeDelta = now.timeIntervalSince(previous.timestamp)
+            if timeDelta > 0 {
+                let pageinsDelta = totalPageins > previous.pageins ? totalPageins - previous.pageins : 0
+                let pageoutsDelta = totalPageouts > previous.pageouts ? totalPageouts - previous.pageouts : 0
+
+                readSpeed = Double(pageinsDelta * pageSize) / timeDelta
+                writeSpeed = Double(pageoutsDelta * pageSize) / timeDelta
+            }
+        }
+
+        previousDiskIO = (totalPageins, totalPageouts, now)
+
+        return DiskIOMetrics(
+            readBytes: readBytes,
+            writeBytes: writeBytes,
+            readSpeed: readSpeed,
+            writeSpeed: writeSpeed,
+            timestamp: now
+        )
+    }
+
     // MARK: - Collect All Metrics
 
     func collectAllMetrics() -> MetricsSnapshot {
@@ -246,7 +350,330 @@ class SystemMetricsCollector {
             memory: collectMemoryMetrics(),
             network: collectNetworkMetrics(),
             storage: collectStorageMetrics(),
+            battery: collectBatteryMetrics(),
+            diskIO: collectDiskIOMetrics(),
             timestamp: Date()
         )
+    }
+
+    // MARK: - Network Details
+
+    func collectNetworkDetails() -> NetworkDetails {
+        var interfaceType = "Unknown"
+        var interfaceName: String?
+        var ipv4Address: String?
+        var ipv6Address: String?
+        var subnetMask: String?
+        var defaultGateway: String?
+        var dnsServers: [String] = []
+        var isVPNActive = false
+        var isProxyEnabled = false
+        var proxyServer: String?
+        var ssid: String?
+        var bssid: String?
+        var rssi: Int?
+        var securityType: String?
+        var wifiBand: String?
+        var isHotspotActive = false
+        var externalIP: String?
+
+        // Check interfaces
+        var ifaddr: UnsafeMutablePointer<ifaddrs>?
+        guard getifaddrs(&ifaddr) == 0 else {
+            return .zero
+        }
+        defer { freeifaddrs(ifaddr) }
+
+        var pointer = ifaddr
+        while pointer != nil {
+            defer { pointer = pointer?.pointee.ifa_next }
+
+            guard let interface = pointer?.pointee else { continue }
+            let name = String(cString: interface.ifa_name)
+
+            // Skip loopback
+            if name == "lo0" { continue }
+
+            let addrFamily = interface.ifa_addr.pointee.sa_family
+            if addrFamily == UInt8(AF_INET) || addrFamily == UInt8(AF_INET6) {
+                // Determine interface type
+                if name.starts(with: "en") {
+                    interfaceType = "WiFi"
+                    interfaceName = name
+                } else if name.starts(with: "pdp_ip") {
+                    interfaceType = "Cellular"
+                    interfaceName = name
+                } else if name.starts(with: "utun") || name.starts(with: "ipsec") {
+                    isVPNActive = true
+                    interfaceType = "VPN"
+                    interfaceName = name
+                }
+
+                // Get IP address
+                var hostname = [CChar](repeating: 0, count: Int(NI_MAXHOST))
+                getnameinfo(interface.ifa_addr, socklen_t(interface.ifa_addr.pointee.sa_len),
+                           &hostname, socklen_t(hostname.count),
+                           nil, socklen_t(0), NI_NUMERICHOST)
+
+                let address = String(cString: hostname)
+
+                if addrFamily == UInt8(AF_INET) {
+                    if ipv4Address == nil {
+                        ipv4Address = address
+                    }
+
+                    // Get subnet mask
+                    if let netmask = interface.ifa_netmask {
+                        var netmaskHost = [CChar](repeating: 0, count: Int(NI_MAXHOST))
+                        getnameinfo(netmask, socklen_t(netmask.pointee.sa_len),
+                                   &netmaskHost, socklen_t(netmaskHost.count),
+                                   nil, socklen_t(0), NI_NUMERICHOST)
+                        if subnetMask == nil {
+                            subnetMask = String(cString: netmaskHost)
+                        }
+                    }
+                } else if addrFamily == UInt8(AF_INET6) {
+                    if ipv6Address == nil && !address.starts(with: "fe80") {
+                        ipv6Address = address
+                    }
+                }
+            }
+        }
+
+        // Get default gateway
+        defaultGateway = getDefaultGateway()
+
+        // Get DNS servers
+        dnsServers = getDNSServers()
+
+        // Check for proxy
+        if let proxies = CFNetworkCopySystemProxySettings()?.takeRetainedValue() as? [String: Any] {
+            if let httpProxy = proxies["HTTPProxy"] as? String {
+                isProxyEnabled = true
+                proxyServer = httpProxy
+                if let port = proxies["HTTPPort"] as? Int {
+                    proxyServer = "\(httpProxy):\(port)"
+                }
+            }
+        }
+
+        // Get WiFi info (requires location permissions and entitlements)
+        if let interfaces = CNCopySupportedInterfaces() as? [String] {
+            for interface in interfaces {
+                if let info = CNCopyCurrentNetworkInfo(interface as CFString) as? [String: Any] {
+                    ssid = info[kCNNetworkInfoKeySSID as String] as? String
+                    bssid = info[kCNNetworkInfoKeyBSSID as String] as? String
+                }
+            }
+        }
+
+        // Try to get WiFi band information (iOS 14+)
+        if #available(iOS 14.0, *) {
+            NEHotspotNetwork.fetchCurrent { network in
+                if let network = network {
+                    ssid = network.ssid
+                    bssid = network.bssid
+
+                    // Determine band based on signal strength and frequency
+                    // Note: Direct frequency access is not available, but we can infer from other properties
+                    // This is an approximation
+                    if network.signalStrength > 0.7 {
+                        // Strong signal might indicate 5GHz
+                        wifiBand = "5 GHz (inferred)"
+                    } else {
+                        wifiBand = "2.4 GHz (inferred)"
+                    }
+                }
+            }
+        }
+
+        // Get cellular info
+        let telephonyInfo = CTTelephonyNetworkInfo()
+        var carrierName: String?
+        var phoneNumber: String?
+        var connectionType: String?
+        var cellularBand: String?
+        var mobileCountryCode: String?
+        var mobileNetworkCode: String?
+        var isoCountryCode: String?
+        var allowsVOIP: Bool?
+
+        if let carrier = telephonyInfo.serviceSubscriberCellularProviders?.values.first {
+            carrierName = carrier.carrierName
+            mobileCountryCode = carrier.mobileCountryCode
+            mobileNetworkCode = carrier.mobileNetworkCode
+            isoCountryCode = carrier.isoCountryCode
+            allowsVOIP = carrier.allowsVOIP
+        }
+
+        if let currentRadioTech = telephonyInfo.serviceCurrentRadioAccessTechnology?.values.first {
+            connectionType = getRadioTechnologyName(currentRadioTech)
+            cellularBand = getCellularBandInfo(currentRadioTech, isoCountryCode: isoCountryCode)
+        }
+
+        // Check if hotspot is active (approximation - check for bridge interfaces)
+        pointer = ifaddr
+        while pointer != nil {
+            defer { pointer = pointer?.pointee.ifa_next }
+            guard let interface = pointer?.pointee else { continue }
+            let name = String(cString: interface.ifa_name)
+            if name.starts(with: "bridge") {
+                isHotspotActive = true
+                break
+            }
+        }
+
+        // Get network statistics
+        var totalBytesSent: UInt64 = 0
+        var totalBytesReceived: UInt64 = 0
+
+        pointer = ifaddr
+        while pointer != nil {
+            defer { pointer = pointer?.pointee.ifa_next }
+            guard let interface = pointer?.pointee else { continue }
+            let name = String(cString: interface.ifa_name)
+
+            // Skip loopback
+            if name == "lo0" { continue }
+
+            if let data = interface.ifa_data?.assumingMemoryBound(to: if_data.self) {
+                totalBytesSent += UInt64(data.pointee.ifi_obytes)
+                totalBytesReceived += UInt64(data.pointee.ifi_ibytes)
+            }
+        }
+
+        return NetworkDetails(
+            interfaceType: interfaceType,
+            interfaceName: interfaceName,
+            isVPNActive: isVPNActive,
+            isProxyEnabled: isProxyEnabled,
+            proxyServer: proxyServer,
+            isHotspotActive: isHotspotActive,
+            ipv4Address: ipv4Address,
+            ipv6Address: ipv6Address,
+            subnetMask: subnetMask,
+            defaultGateway: defaultGateway,
+            externalIP: externalIP,
+            dnsServers: dnsServers,
+            ssid: ssid,
+            bssid: bssid,
+            rssi: rssi,
+            securityType: securityType,
+            wifiBand: wifiBand,
+            carrierName: carrierName,
+            phoneNumber: phoneNumber,
+            connectionType: connectionType,
+            cellularBand: cellularBand,
+            mobileCountryCode: mobileCountryCode,
+            mobileNetworkCode: mobileNetworkCode,
+            isoCountryCode: isoCountryCode,
+            allowsVOIP: allowsVOIP,
+            totalBytesSent: totalBytesSent,
+            totalBytesReceived: totalBytesReceived
+        )
+    }
+
+    private func getDefaultGateway() -> String? {
+        // iOS doesn't provide easy access to routing table
+        // Return nil for now
+        return nil
+    }
+
+    private func getDNSServers() -> [String] {
+        var dnsServers: [String] = []
+
+        // Try to get DNS servers from resolv.conf (limited on iOS)
+        if let resolvPath = Bundle.main.path(forResource: "resolv", ofType: "conf") {
+            do {
+                let content = try String(contentsOfFile: resolvPath, encoding: .utf8)
+                let lines = content.components(separatedBy: .newlines)
+                for line in lines {
+                    if line.starts(with: "nameserver") {
+                        let components = line.components(separatedBy: .whitespaces)
+                        if components.count >= 2 {
+                            dnsServers.append(components[1])
+                        }
+                    }
+                }
+            } catch {
+                // Failed to read file
+            }
+        }
+
+        // Fallback: Common DNS servers (Google, Cloudflare)
+        if dnsServers.isEmpty {
+            // Note: This is just a placeholder. Actual DNS servers can't be reliably determined on iOS
+            // without jailbreak or special entitlements
+        }
+
+        return dnsServers
+    }
+
+    private func getRadioTechnologyName(_ tech: String) -> String {
+        switch tech {
+        case CTRadioAccessTechnologyGPRS:
+            return "GPRS"
+        case CTRadioAccessTechnologyEdge:
+            return "EDGE"
+        case CTRadioAccessTechnologyWCDMA:
+            return "3G (WCDMA)"
+        case CTRadioAccessTechnologyHSDPA:
+            return "3G (HSDPA)"
+        case CTRadioAccessTechnologyHSUPA:
+            return "3G (HSUPA)"
+        case CTRadioAccessTechnologyCDMA1x:
+            return "CDMA 1x"
+        case CTRadioAccessTechnologyCDMAEVDORev0:
+            return "CDMA EV-DO Rev. 0"
+        case CTRadioAccessTechnologyCDMAEVDORevA:
+            return "CDMA EV-DO Rev. A"
+        case CTRadioAccessTechnologyCDMAEVDORevB:
+            return "CDMA EV-DO Rev. B"
+        case CTRadioAccessTechnologyeHRPD:
+            return "eHRPD"
+        case CTRadioAccessTechnologyLTE:
+            return "4G (LTE)"
+        default:
+            if #available(iOS 14.1, *) {
+                if tech == CTRadioAccessTechnologyNRNSA {
+                    return "5G (NSA)"
+                } else if tech == CTRadioAccessTechnologyNR {
+                    return "5G"
+                }
+            }
+            return "Unknown"
+        }
+    }
+
+    private func getCellularBandInfo(_ tech: String, isoCountryCode: String?) -> String? {
+        // Note: iOS doesn't provide direct access to cellular band information
+        // This is an approximation based on technology type and region
+
+        if #available(iOS 14.1, *) {
+            if tech == CTRadioAccessTechnologyNR || tech == CTRadioAccessTechnologyNRNSA {
+                // 5G bands vary by region
+                if isoCountryCode == "jp" {
+                    return "n77, n78, n79 (typical)"
+                } else if isoCountryCode == "us" {
+                    return "n41, n71, n260, n261 (typical)"
+                } else {
+                    return "n1, n3, n28, n77, n78 (typical)"
+                }
+            }
+        }
+
+        if tech == CTRadioAccessTechnologyLTE {
+            // LTE bands vary by region
+            if isoCountryCode == "jp" {
+                return "B1, B3, B8, B11, B18, B19, B21, B28, B42 (typical)"
+            } else if isoCountryCode == "us" {
+                return "B2, B4, B5, B12, B13, B66, B71 (typical)"
+            } else {
+                return "B1, B3, B7, B8, B20, B28 (typical)"
+            }
+        }
+
+        // For 3G and earlier, band info is less critical
+        return nil
     }
 }

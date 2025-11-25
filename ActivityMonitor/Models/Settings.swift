@@ -30,7 +30,14 @@ struct AppSettings: Codable {
     var hapticsEnabled: Bool // Enable/disable haptic feedback
 
     static let `default` = AppSettings(
-        enabledMetrics: Set(MetricType.allCases),
+        enabledMetrics: [
+            .cpuTotal,
+            .memoryTotal,
+            .networkTotal,
+            .storage,
+            .battery,
+            .diskIOTotal
+        ],
         refreshInterval: 1.0,
         historyDuration: 300.0, // 5 minutes
         maxDataPoints: 300,

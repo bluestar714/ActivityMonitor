@@ -244,46 +244,12 @@ struct DashboardView: View {
                     .id("network-upload")
                 }
 
-                // Storage Metric
-                if settingsManager.isMetricEnabled(.storage) {
-                    ModernMetricCardView(
-                        type: .storage,
-                        currentValue: String(format: "%.1f%%", metricsManager.currentMetrics.storage.usagePercentage),
-                        subtitle: storageSubtitle,
-                        data: metricsManager.getHistory(for: .storage),
-                        maxValue: 100,
-                        color: .purple
-                    )
-                    .transition(.asymmetric(
-                        insertion: .scale(scale: 0.9).combined(with: .opacity).combined(with: .move(edge: .top)),
-                        removal: .scale(scale: 0.9).combined(with: .opacity)
-                    ))
-                    .id("storage")
-                }
-
-                // Battery Metric
-                if settingsManager.isMetricEnabled(.battery) {
-                    ModernMetricCardView(
-                        type: .battery,
-                        currentValue: String(format: "%.1f%%", metricsManager.currentMetrics.battery.level),
-                        subtitle: batterySubtitle,
-                        data: metricsManager.getHistory(for: .battery),
-                        maxValue: 100,
-                        color: .yellow
-                    )
-                    .transition(.asymmetric(
-                        insertion: .scale(scale: 0.9).combined(with: .opacity).combined(with: .move(edge: .top)),
-                        removal: .scale(scale: 0.9).combined(with: .opacity)
-                    ))
-                    .id("battery")
-                }
-
                 // Disk I/O Total Metric
                 if settingsManager.isMetricEnabled(.diskIOTotal) {
                     ModernMetricCardView(
                         type: .diskIOTotal,
                         currentValue: diskIOTotalValue,
-                        subtitle: "Combined read and write • Tap for details",
+                        subtitle: "Combined read and write",
                         data: metricsManager.diskIOHistory.map { $0.readSpeedMBps + $0.writeSpeedMBps },
                         maxValue: maxDiskIOTotalSpeed,
                         color: .purple
@@ -335,6 +301,40 @@ struct DashboardView: View {
                         removal: .scale(scale: 0.9).combined(with: .opacity)
                     ))
                     .id("diskIO-write")
+                }
+
+                // Storage Metric
+                if settingsManager.isMetricEnabled(.storage) {
+                    ModernMetricCardView(
+                        type: .storage,
+                        currentValue: String(format: "%.1f%%", metricsManager.currentMetrics.storage.usagePercentage),
+                        subtitle: storageSubtitle,
+                        data: metricsManager.getHistory(for: .storage),
+                        maxValue: 100,
+                        color: .purple
+                    )
+                    .transition(.asymmetric(
+                        insertion: .scale(scale: 0.9).combined(with: .opacity).combined(with: .move(edge: .top)),
+                        removal: .scale(scale: 0.9).combined(with: .opacity)
+                    ))
+                    .id("storage")
+                }
+
+                // Battery Metric
+                if settingsManager.isMetricEnabled(.battery) {
+                    ModernMetricCardView(
+                        type: .battery,
+                        currentValue: String(format: "%.1f%%", metricsManager.currentMetrics.battery.level),
+                        subtitle: batterySubtitle,
+                        data: metricsManager.getHistory(for: .battery),
+                        maxValue: 100,
+                        color: .yellow
+                    )
+                    .transition(.asymmetric(
+                        insertion: .scale(scale: 0.9).combined(with: .opacity).combined(with: .move(edge: .top)),
+                        removal: .scale(scale: 0.9).combined(with: .opacity)
+                    ))
+                    .id("battery")
                 }
             }
             .padding(20)
@@ -389,39 +389,18 @@ struct DashboardView: View {
 
     private var cpuCurrentValue: String {
         let cpu = metricsManager.currentMetrics.cpu
-
-        if settingsManager.settings.showDetailedCPU {
-            // Show User and System separately
-            return String(format: "%.1f%% / %.1f%%", cpu.userTime, cpu.systemTime)
-        } else {
-            // Show total (User + System)
-            let total = cpu.userTime + cpu.systemTime
-            return String(format: "%.1f%%", total)
-        }
+        let total = cpu.userTime + cpu.systemTime
+        return String(format: "%.1f%%", total)
     }
 
     private var cpuSubtitle: String {
         let cpu = metricsManager.currentMetrics.cpu
-
-        if settingsManager.settings.showDetailedCPU {
-            // Show Idle when in detailed mode
-            return String(format: "User / System • Idle: %.1f%%", cpu.idleTime)
-        } else {
-            // Show breakdown when in total mode
-            return String(format: "User: %.1f%% • System: %.1f%% • Tap for details", cpu.userTime, cpu.systemTime)
-        }
+        return String(format: "User: %.1f%% • System: %.1f%% • Idle: %.1f%%", cpu.userTime, cpu.systemTime, cpu.idleTime)
     }
 
     private var memorySubtitle: String {
         let memory = metricsManager.currentMetrics.memory
-
-        if settingsManager.settings.showDetailedMemory {
-            // Show total when in detailed mode
-            return String(format: "%.1f GB / %.1f GB", memory.usedGB, memory.totalGB)
-        } else {
-            // Show tap hint when in total mode
-            return String(format: "%.1f GB / %.1f GB • Tap for details", memory.usedGB, memory.totalGB)
-        }
+        return String(format: "%.1f GB / %.1f GB", memory.usedGB, memory.totalGB)
     }
 
     private var memoryActiveValue: String {

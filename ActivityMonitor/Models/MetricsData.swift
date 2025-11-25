@@ -12,20 +12,20 @@ import Foundation
 enum MetricType: String, CaseIterable, Codable {
     case cpuUser = "CPU User"
     case cpuSystem = "CPU System"
-    case cpuTotal = "CPU Total"
+    case cpuTotal = "CPU"
     case memoryActive = "Memory Active"
     case memoryInactive = "Memory Inactive"
     case memoryWired = "Memory Wired"
     case memoryCompressed = "Memory Compressed"
-    case memoryTotal = "Memory Total"
+    case memoryTotal = "Memory"
     case networkDownload = "Network Download"
     case networkUpload = "Network Upload"
-    case networkTotal = "Network Total"
+    case networkTotal = "Network"
     case storage = "Storage"
     case battery = "Battery"
     case diskIORead = "Disk I/O Read"
     case diskIOWrite = "Disk I/O Write"
-    case diskIOTotal = "Disk I/O Total"
+    case diskIOTotal = "Disk I/O"
 
     var icon: String {
         switch self {

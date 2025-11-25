@@ -167,6 +167,79 @@ struct NetworkMetrics: Codable {
     )
 }
 
+// MARK: - Network Details
+
+struct NetworkDetails: Codable {
+    // Connection Info
+    let interfaceType: String // WiFi, Cellular, Ethernet, etc.
+    let interfaceName: String?
+    let isVPNActive: Bool
+    let isProxyEnabled: Bool
+    let proxyServer: String?
+    let isHotspotActive: Bool
+
+    // IP Configuration
+    let ipv4Address: String?
+    let ipv6Address: String?
+    let subnetMask: String?
+    let defaultGateway: String?
+    let externalIP: String?
+
+    // DNS
+    let dnsServers: [String]
+
+    // WiFi Specific
+    let ssid: String?
+    let bssid: String?
+    let rssi: Int? // Signal strength in dBm
+    let securityType: String?
+    let wifiBand: String? // 2.4 GHz, 5 GHz, 6 GHz
+
+    // Cellular Specific
+    let carrierName: String?
+    let phoneNumber: String?
+    let connectionType: String? // 4G, 5G, LTE, etc.
+    let cellularBand: String? // Band number (e.g., B1, B3, n78, n79)
+    let mobileCountryCode: String?
+    let mobileNetworkCode: String?
+    let isoCountryCode: String?
+    let allowsVOIP: Bool?
+
+    // Data Usage
+    let totalBytesSent: UInt64
+    let totalBytesReceived: UInt64
+
+    static let zero = NetworkDetails(
+        interfaceType: "Unknown",
+        interfaceName: nil,
+        isVPNActive: false,
+        isProxyEnabled: false,
+        proxyServer: nil,
+        isHotspotActive: false,
+        ipv4Address: nil,
+        ipv6Address: nil,
+        subnetMask: nil,
+        defaultGateway: nil,
+        externalIP: nil,
+        dnsServers: [],
+        ssid: nil,
+        bssid: nil,
+        rssi: nil,
+        securityType: nil,
+        wifiBand: nil,
+        carrierName: nil,
+        phoneNumber: nil,
+        connectionType: nil,
+        cellularBand: nil,
+        mobileCountryCode: nil,
+        mobileNetworkCode: nil,
+        isoCountryCode: nil,
+        allowsVOIP: nil,
+        totalBytesSent: 0,
+        totalBytesReceived: 0
+    )
+}
+
 // MARK: - Storage Metrics
 
 struct StorageMetrics: Codable {

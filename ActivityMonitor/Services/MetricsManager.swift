@@ -21,6 +21,7 @@ class MetricsManager {
     var storageHistory: [StorageMetrics] = []
     var batteryHistory: [BatteryMetrics] = []
     var diskIOHistory: [DiskIOMetrics] = []
+    var networkDetails: NetworkDetails = .zero
 
     private let collector = SystemMetricsCollector()
     private var timer: Timer?
@@ -199,5 +200,11 @@ class MetricsManager {
         storageHistory.removeAll()
         batteryHistory.removeAll()
         diskIOHistory.removeAll()
+    }
+
+    func refreshNetworkDetails() async {
+        networkDetails = await Task.detached(priority: .userInitiated) { [weak self] in
+            self?.collector.collectNetworkDetails() ?? .zero
+        }.value
     }
 }

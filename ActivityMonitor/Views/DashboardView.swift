@@ -12,6 +12,7 @@ struct DashboardView: View {
     @Environment(MetricsManager.self) private var metricsManager
     @Environment(SettingsManager.self) private var settingsManager
     @State private var pipManager = PictureInPictureManager.shared
+    @State private var showNetworkDetails = false
 
     var body: some View {
         ZStack(alignment: .bottomTrailing) {
@@ -179,12 +180,21 @@ struct DashboardView: View {
                         data: metricsManager.getHistory(for: .networkTotal),
                         maxValue: maxNetworkTotalSpeed,
                         color: .orange
-                    )
-                    .transition(.asymmetric(
-                        insertion: .scale(scale: 0.9).combined(with: .opacity).combined(with: .move(edge: .top)),
-                        removal: .scale(scale: 0.9).combined(with: .opacity)
-                    ))
-                    .id("network-total")
+                    ) {
+                        // Info button for network details
+                        Button {
+                            Task {
+                                await metricsManager.refreshNetworkDetails()
+                                showNetworkDetails = true
+                            }
+                        } label: {
+                            Image(systemName: "info.circle.fill")
+                                .font(.system(size: 16))
+                                .foregroundStyle(.orange.gradient)
+                                .symbolRenderingMode(.hierarchical)
+                        }
+                        .buttonStyle(.plain)
+                    }
                     .onTapGesture {
                         withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
                             settingsManager.settings.showDetailedNetwork.toggle()
@@ -193,6 +203,11 @@ struct DashboardView: View {
                     .sensoryFeedback(.selection, trigger: settingsManager.settings.showDetailedNetwork) { _, _ in
                         settingsManager.settings.hapticsEnabled
                     }
+                    .transition(.asymmetric(
+                        insertion: .scale(scale: 0.9).combined(with: .opacity).combined(with: .move(edge: .top)),
+                        removal: .scale(scale: 0.9).combined(with: .opacity)
+                    ))
+                    .id("network-total")
                 }
 
                 // Network Download Metric
@@ -354,6 +369,9 @@ struct DashboardView: View {
             .frame(width: 1, height: 1)
             .opacity(0.01)
             .allowsHitTesting(false)
+        }
+        .sheet(isPresented: $showNetworkDetails) {
+            NetworkDetailsView(networkDetails: metricsManager.networkDetails)
         }
     }
 
@@ -572,6 +590,261 @@ struct DashboardView: View {
     private func refreshMetrics() async {
         // Simulate refresh delay
         try? await Task.sleep(nanoseconds: 500_000_000)
+    }
+}
+
+// MARK: - Network Details View
+
+@available(iOS 17.0, *)
+struct NetworkDetailsView: View {
+    @Environment(\.dismiss) private var dismiss
+    let networkDetails: NetworkDetails
+
+    var body: some View {
+        NavigationStack {
+            List {
+                // Connection Status
+                Section {
+                    DetailRow(label: "Interface Type", value: networkDetails.interfaceType, icon: "network")
+                    if let interfaceName = networkDetails.interfaceName {
+                        DetailRow(label: "Interface Name", value: interfaceName, icon: "laptopcomputer")
+                    }
+                    if networkDetails.isVPNActive {
+                        DetailRow(label: "VPN", value: "Connected", icon: "lock.shield.fill", valueColor: .green)
+                    }
+                    if networkDetails.isHotspotActive {
+                        DetailRow(label: "Personal Hotspot", value: "Active", icon: "personalhotspot", valueColor: .orange)
+                    }
+                } header: {
+                    Text("Connection Status")
+                        .font(.system(size: 13, weight: .semibold, design: .rounded))
+                }
+
+                // IP Configuration
+                Section {
+                    if let ipv4 = networkDetails.ipv4Address {
+                        CopyableDetailRow(label: "IPv4 Address", value: ipv4, icon: "number.circle.fill")
+                    }
+                    if let ipv6 = networkDetails.ipv6Address {
+                        CopyableDetailRow(label: "IPv6 Address", value: ipv6, icon: "number.circle.fill")
+                    }
+                    if let subnetMask = networkDetails.subnetMask {
+                        DetailRow(label: "Subnet Mask", value: subnetMask, icon: "network.badge.shield.half.filled")
+                    }
+                    if let gateway = networkDetails.defaultGateway {
+                        CopyableDetailRow(label: "Default Gateway", value: gateway, icon: "arrow.triangle.branch")
+                    }
+                    if let externalIP = networkDetails.externalIP {
+                        CopyableDetailRow(label: "External IP", value: externalIP, icon: "globe")
+                    }
+                } header: {
+                    Text("IP Configuration")
+                        .font(.system(size: 13, weight: .semibold, design: .rounded))
+                }
+
+                // DNS
+                if !networkDetails.dnsServers.isEmpty {
+                    Section {
+                        ForEach(Array(networkDetails.dnsServers.enumerated()), id: \.offset) { index, dns in
+                            CopyableDetailRow(label: "DNS \(index + 1)", value: dns, icon: "server.rack")
+                        }
+                    } header: {
+                        Text("DNS Servers")
+                            .font(.system(size: 13, weight: .semibold, design: .rounded))
+                    }
+                }
+
+                // WiFi Information
+                if networkDetails.ssid != nil || networkDetails.bssid != nil {
+                    Section {
+                        if let ssid = networkDetails.ssid {
+                            DetailRow(label: "SSID", value: ssid, icon: "wifi")
+                        }
+                        if let bssid = networkDetails.bssid {
+                            CopyableDetailRow(label: "BSSID", value: bssid, icon: "antenna.radiowaves.left.and.right")
+                        }
+                        if let rssi = networkDetails.rssi {
+                            DetailRow(label: "Signal Strength", value: "\(rssi) dBm", icon: "wifi.circle.fill")
+                        }
+                        if let securityType = networkDetails.securityType {
+                            DetailRow(label: "Security Type", value: securityType, icon: "lock.fill")
+                        }
+                        if let wifiBand = networkDetails.wifiBand {
+                            DetailRow(label: "Band", value: wifiBand, icon: "waveform")
+                        }
+                    } header: {
+                        Text("WiFi Information")
+                            .font(.system(size: 13, weight: .semibold, design: .rounded))
+                    }
+                }
+
+                // Cellular Information
+                if networkDetails.carrierName != nil || networkDetails.connectionType != nil {
+                    Section {
+                        if let carrier = networkDetails.carrierName {
+                            DetailRow(label: "Carrier", value: carrier, icon: "antenna.radiowaves.left.and.right.circle.fill")
+                        }
+                        if let connectionType = networkDetails.connectionType {
+                            DetailRow(label: "Connection Type", value: connectionType, icon: "cellularbars")
+                        }
+                        if let cellularBand = networkDetails.cellularBand {
+                            DetailRow(label: "Band", value: cellularBand, icon: "waveform.circle")
+                        }
+                        if let phoneNumber = networkDetails.phoneNumber {
+                            CopyableDetailRow(label: "Phone Number", value: phoneNumber, icon: "phone.fill")
+                        }
+                        if let mcc = networkDetails.mobileCountryCode {
+                            DetailRow(label: "Mobile Country Code", value: mcc, icon: "globe.asia.australia.fill")
+                        }
+                        if let mnc = networkDetails.mobileNetworkCode {
+                            DetailRow(label: "Mobile Network Code", value: mnc, icon: "antenna.radiowaves.left.and.right")
+                        }
+                        if let iso = networkDetails.isoCountryCode {
+                            DetailRow(label: "Country Code", value: iso, icon: "flag.fill")
+                        }
+                        if let voip = networkDetails.allowsVOIP {
+                            DetailRow(label: "VoIP Support", value: voip ? "Yes" : "No", icon: "phone.connection")
+                        }
+                    } header: {
+                        Text("Cellular Information")
+                            .font(.system(size: 13, weight: .semibold, design: .rounded))
+                    }
+                }
+
+                // Proxy
+                if networkDetails.isProxyEnabled {
+                    Section {
+                        DetailRow(label: "Proxy Status", value: "Enabled", icon: "arrow.left.arrow.right.circle.fill", valueColor: .orange)
+                        if let proxy = networkDetails.proxyServer {
+                            CopyableDetailRow(label: "Proxy Server", value: proxy, icon: "server.rack")
+                        }
+                    } header: {
+                        Text("Proxy Configuration")
+                            .font(.system(size: 13, weight: .semibold, design: .rounded))
+                    }
+                }
+
+                // Data Usage
+                Section {
+                    DetailRow(
+                        label: "Total Sent",
+                        value: formatBytes(networkDetails.totalBytesSent),
+                        icon: "arrow.up.circle.fill",
+                        valueColor: .blue
+                    )
+                    DetailRow(
+                        label: "Total Received",
+                        value: formatBytes(networkDetails.totalBytesReceived),
+                        icon: "arrow.down.circle.fill",
+                        valueColor: .green
+                    )
+                } header: {
+                    Text("Data Usage (Session)")
+                        .font(.system(size: 13, weight: .semibold, design: .rounded))
+                }
+            }
+            .listStyle(.insetGrouped)
+            .navigationTitle("Network Details")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        dismiss()
+                    } label: {
+                        Text("Done")
+                            .font(.system(size: 16, weight: .semibold, design: .rounded))
+                    }
+                }
+            }
+        }
+    }
+
+    private func formatBytes(_ bytes: UInt64) -> String {
+        let formatter = ByteCountFormatter()
+        formatter.allowedUnits = [.useAll]
+        formatter.countStyle = .file
+        return formatter.string(fromByteCount: Int64(bytes))
+    }
+}
+
+// MARK: - Detail Row
+
+struct DetailRow: View {
+    let label: String
+    let value: String
+    let icon: String
+    var valueColor: Color = .primary
+
+    var body: some View {
+        HStack {
+            Label {
+                Text(label)
+                    .font(.system(size: 16, weight: .medium, design: .rounded))
+            } icon: {
+                Image(systemName: icon)
+                    .foregroundStyle(.blue.gradient)
+                    .symbolRenderingMode(.hierarchical)
+                    .font(.system(size: 18))
+            }
+
+            Spacer()
+
+            Text(value)
+                .font(.system(size: 15, design: .monospaced))
+                .foregroundStyle(valueColor)
+                .textSelection(.enabled)
+        }
+    }
+}
+
+// MARK: - Copyable Detail Row
+
+struct CopyableDetailRow: View {
+    let label: String
+    let value: String
+    let icon: String
+    @State private var showCopied = false
+
+    var body: some View {
+        HStack {
+            Label {
+                Text(label)
+                    .font(.system(size: 16, weight: .medium, design: .rounded))
+            } icon: {
+                Image(systemName: icon)
+                    .foregroundStyle(.blue.gradient)
+                    .symbolRenderingMode(.hierarchical)
+                    .font(.system(size: 18))
+            }
+
+            Spacer()
+
+            HStack(spacing: 8) {
+                Text(value)
+                    .font(.system(size: 15, design: .monospaced))
+                    .foregroundStyle(.primary)
+                    .textSelection(.enabled)
+
+                Button {
+                    UIPasteboard.general.string = value
+                    withAnimation {
+                        showCopied = true
+                    }
+
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                        withAnimation {
+                            showCopied = false
+                        }
+                    }
+                } label: {
+                    Image(systemName: showCopied ? "checkmark.circle.fill" : "doc.on.doc")
+                        .foregroundStyle(showCopied ? .green : .blue)
+                        .font(.system(size: 16))
+                        .symbolEffect(.bounce, value: showCopied)
+                }
+                .buttonStyle(.plain)
+            }
+        }
     }
 }
 

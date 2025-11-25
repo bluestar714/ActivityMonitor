@@ -9,16 +9,35 @@ import SwiftUI
 import Charts
 
 @available(iOS 17.0, *)
-struct ModernMetricCardView: View {
+struct ModernMetricCardView<TrailingButton: View>: View {
     let type: MetricType
     let currentValue: String
     let subtitle: String
     let data: [Double]
     let maxValue: Double
     let color: Color
+    let trailingButton: TrailingButton?
 
     @State private var animateGradient = false
     @State private var isPressed = false
+
+    init(
+        type: MetricType,
+        currentValue: String,
+        subtitle: String,
+        data: [Double],
+        maxValue: Double,
+        color: Color,
+        @ViewBuilder trailingButton: () -> TrailingButton
+    ) {
+        self.type = type
+        self.currentValue = currentValue
+        self.subtitle = subtitle
+        self.data = data
+        self.maxValue = maxValue
+        self.color = color
+        self.trailingButton = trailingButton()
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -53,9 +72,15 @@ struct ModernMetricCardView: View {
                 }
 
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(type.rawValue)
-                        .font(.system(size: 16, weight: .semibold, design: .rounded))
-                        .foregroundStyle(.primary)
+                    HStack(spacing: 4) {
+                        Text(type.rawValue)
+                            .font(.system(size: 16, weight: .semibold, design: .rounded))
+                            .foregroundStyle(.primary)
+
+                        if let button = trailingButton {
+                            button
+                        }
+                    }
 
                     Text(subtitle)
                         .font(.system(size: 12, weight: .medium, design: .rounded))
@@ -110,6 +135,28 @@ struct ModernMetricCardView: View {
         }
         .scaleEffect(isPressed ? 0.98 : 1.0)
         .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isPressed)
+    }
+}
+
+// MARK: - Convenience Initializer (No Trailing Button)
+
+@available(iOS 17.0, *)
+extension ModernMetricCardView where TrailingButton == EmptyView {
+    init(
+        type: MetricType,
+        currentValue: String,
+        subtitle: String,
+        data: [Double],
+        maxValue: Double,
+        color: Color
+    ) {
+        self.type = type
+        self.currentValue = currentValue
+        self.subtitle = subtitle
+        self.data = data
+        self.maxValue = maxValue
+        self.color = color
+        self.trailingButton = nil
     }
 }
 

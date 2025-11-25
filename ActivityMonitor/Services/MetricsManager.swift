@@ -207,4 +207,124 @@ class MetricsManager {
             self?.collector.collectNetworkDetails() ?? .zero
         }.value
     }
+
+    // MARK: - Data Export
+
+    func exportDataAsCSV() -> URL? {
+        var csvString = "Timestamp,CPU User (%),CPU System (%),CPU Total (%),Memory Used (GB),Memory Total (GB),Memory Usage (%),Network Download (MB/s),Network Upload (MB/s),Storage Used (GB),Storage Total (GB),Storage Usage (%),Battery Level (%),Disk I/O Read (MB/s),Disk I/O Write (MB/s)\n"
+
+        // Find the maximum count among all histories
+        let maxCount = max(
+            cpuHistory.count,
+            memoryHistory.count,
+            networkHistory.count,
+            storageHistory.count,
+            batteryHistory.count,
+            diskIOHistory.count
+        )
+
+        // Export data row by row
+        for i in 0..<maxCount {
+            var row: [String] = []
+
+            // Timestamp (use the first available timestamp)
+            let timestamp: Date
+            if i < cpuHistory.count {
+                timestamp = cpuHistory[i].timestamp
+            } else if i < memoryHistory.count {
+                timestamp = memoryHistory[i].timestamp
+            } else if i < networkHistory.count {
+                timestamp = networkHistory[i].timestamp
+            } else if i < storageHistory.count {
+                timestamp = storageHistory[i].timestamp
+            } else if i < batteryHistory.count {
+                timestamp = batteryHistory[i].timestamp
+            } else if i < diskIOHistory.count {
+                timestamp = diskIOHistory[i].timestamp
+            } else {
+                timestamp = Date()
+            }
+
+            let dateFormatter = ISO8601DateFormatter()
+            row.append(dateFormatter.string(from: timestamp))
+
+            // CPU data
+            if i < cpuHistory.count {
+                let cpu = cpuHistory[i]
+                row.append(String(format: "%.2f", cpu.userTime))
+                row.append(String(format: "%.2f", cpu.systemTime))
+                row.append(String(format: "%.2f", cpu.userTime + cpu.systemTime))
+            } else {
+                row.append("")
+                row.append("")
+                row.append("")
+            }
+
+            // Memory data
+            if i < memoryHistory.count {
+                let memory = memoryHistory[i]
+                row.append(String(format: "%.2f", memory.usedGB))
+                row.append(String(format: "%.2f", memory.totalGB))
+                row.append(String(format: "%.2f", memory.usagePercentage))
+            } else {
+                row.append("")
+                row.append("")
+                row.append("")
+            }
+
+            // Network data
+            if i < networkHistory.count {
+                let network = networkHistory[i]
+                row.append(String(format: "%.2f", network.downloadSpeedMBps))
+                row.append(String(format: "%.2f", network.uploadSpeedMBps))
+            } else {
+                row.append("")
+                row.append("")
+            }
+
+            // Storage data
+            if i < storageHistory.count {
+                let storage = storageHistory[i]
+                row.append(String(format: "%.2f", storage.usedGB))
+                row.append(String(format: "%.2f", storage.totalGB))
+                row.append(String(format: "%.2f", storage.usagePercentage))
+            } else {
+                row.append("")
+                row.append("")
+                row.append("")
+            }
+
+            // Battery data
+            if i < batteryHistory.count {
+                let battery = batteryHistory[i]
+                row.append(String(format: "%.2f", battery.level))
+            } else {
+                row.append("")
+            }
+
+            // Disk I/O data
+            if i < diskIOHistory.count {
+                let diskIO = diskIOHistory[i]
+                row.append(String(format: "%.2f", diskIO.readSpeedMBps))
+                row.append(String(format: "%.2f", diskIO.writeSpeedMBps))
+            } else {
+                row.append("")
+                row.append("")
+            }
+
+            csvString += row.joined(separator: ",") + "\n"
+        }
+
+        // Save to temporary file
+        let fileName = "ActivityMonitor_Export_\(Date().timeIntervalSince1970).csv"
+        let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(fileName)
+
+        do {
+            try csvString.write(to: tempURL, atomically: true, encoding: .utf8)
+            return tempURL
+        } catch {
+            print("Error writing CSV file: \(error)")
+            return nil
+        }
+    }
 }

@@ -14,6 +14,9 @@ struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var showShareSheet = false
     @State private var fileToShare: URL?
+    @State private var isOptimizing = false
+    @State private var showOptimizationResult = false
+    @State private var optimizationResult: (freedMemory: Double, clearedCache: Double)?
 
     var body: some View {
         NavigationStack {
@@ -237,6 +240,50 @@ struct SettingsView: View {
                         .font(.system(size: 13, design: .rounded))
                 }
 
+                // Performance Section
+                Section {
+                    Button(action: {
+                        Task {
+                            isOptimizing = true
+                            let result = await metricsManager.optimizePerformance()
+                            optimizationResult = result
+                            isOptimizing = false
+                            showOptimizationResult = true
+                        }
+                    }) {
+                        HStack {
+                            Label {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text("Optimize Performance")
+                                        .font(.system(size: 16, weight: .medium, design: .rounded))
+                                    Text("Clear cache and free memory")
+                                        .font(.system(size: 13, design: .rounded))
+                                        .foregroundStyle(.secondary)
+                                }
+                            } icon: {
+                                Image(systemName: isOptimizing ? "arrow.triangle.2.circlepath" : "speedometer")
+                                    .foregroundStyle(.green.gradient)
+                                    .symbolRenderingMode(.hierarchical)
+                                    .font(.system(size: 20))
+                                    .symbolEffect(.pulse, isActive: isOptimizing)
+                            }
+
+                            if isOptimizing {
+                                Spacer()
+                                ProgressView()
+                                    .tint(.green)
+                            }
+                        }
+                    }
+                    .disabled(isOptimizing)
+                } header: {
+                    Text("Performance")
+                        .font(.system(size: 13, weight: .semibold, design: .rounded))
+                } footer: {
+                    Text("Clears temporary files and app cache to free up storage and memory.")
+                        .font(.system(size: 13, design: .rounded))
+                }
+
                 // Actions Section
                 Section {
                     Button(action: {
@@ -316,6 +363,13 @@ struct SettingsView: View {
             .sheet(isPresented: $showShareSheet) {
                 if let fileURL = fileToShare {
                     ShareSheet(items: [fileURL])
+                }
+            }
+            .alert("Optimization Complete", isPresented: $showOptimizationResult) {
+                Button("OK", role: .cancel) { }
+            } message: {
+                if let result = optimizationResult {
+                    Text("Cleared \(String(format: "%.2f", result.clearedCache)) GB of cache\nFreed \(String(format: "%.2f", result.freedMemory)) GB of memory")
                 }
             }
         }

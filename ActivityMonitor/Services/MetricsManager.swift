@@ -202,6 +202,48 @@ class MetricsManager {
         diskIOHistory.removeAll()
     }
 
+    // MARK: - Performance Optimization
+
+    func optimizePerformance() async -> (freedMemory: Double, clearedCache: Double) {
+        // Clear temporary files
+        let tempDir = FileManager.default.temporaryDirectory
+        var clearedSize: UInt64 = 0
+
+        do {
+            let tempFiles = try FileManager.default.contentsOfDirectory(at: tempDir, includingPropertiesForKeys: [.fileSizeKey])
+            for fileURL in tempFiles {
+                if let fileSize = try? fileURL.resourceValues(forKeys: [.fileSizeKey]).fileSize {
+                    clearedSize += UInt64(fileSize)
+                }
+                try? FileManager.default.removeItem(at: fileURL)
+            }
+        } catch {
+            print("Error clearing temp files: \(error)")
+        }
+
+        // Clear URL cache
+        URLCache.shared.removeAllCachedResponses()
+
+        // Capture memory before optimization
+        let memoryBefore = currentMetrics.memory.usedGB
+
+        // Request memory pressure to encourage iOS to free memory
+        // Note: This is done through collecting new metrics
+        await collectMetrics()
+
+        // Small delay to allow system to respond
+        try? await Task.sleep(nanoseconds: 500_000_000)
+
+        // Collect metrics again to see the effect
+        await collectMetrics()
+
+        let memoryAfter = currentMetrics.memory.usedGB
+        let freedMemory = max(0, memoryBefore - memoryAfter)
+        let clearedCache = Double(clearedSize) / 1_073_741_824.0 // Convert to GB
+
+        return (freedMemory, clearedCache)
+    }
+
     func refreshNetworkDetails() async {
         networkDetails = await Task.detached(priority: .userInitiated) { [weak self] in
             self?.collector.collectNetworkDetails() ?? .zero

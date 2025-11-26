@@ -9,6 +9,177 @@ import Foundation
 import Observation
 import WidgetKit
 
+// MARK: - Storage Category
+
+struct StorageCategory: Identifiable {
+    let id = UUID()
+    let name: String
+    let size: UInt64
+    let path: URL?
+    let canDelete: Bool
+    let icon: String
+
+    var sizeGB: Double {
+        return Double(size) / 1_073_741_824.0
+    }
+
+    var sizeMB: Double {
+        return Double(size) / 1_048_576.0
+    }
+}
+
+// MARK: - Storage Manager
+
+@MainActor
+class StorageManager {
+    static let shared = StorageManager()
+
+    private init() {}
+
+    func analyzeStorage() -> [StorageCategory] {
+        var categories: [StorageCategory] = []
+
+        // Temporary files
+        let tempSize = calculateDirectorySize(FileManager.default.temporaryDirectory)
+        categories.append(StorageCategory(
+            name: "Temporary Files",
+            size: tempSize,
+            path: FileManager.default.temporaryDirectory,
+            canDelete: true,
+            icon: "doc.badge.clock"
+        ))
+
+        // Caches
+        if let cachesURL = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first {
+            let cacheSize = calculateDirectorySize(cachesURL)
+            categories.append(StorageCategory(
+                name: "App Cache",
+                size: cacheSize,
+                path: cachesURL,
+                canDelete: true,
+                icon: "tray.full"
+            ))
+        }
+
+        // Documents
+        if let documentsURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first {
+            let docsSize = calculateDirectorySize(documentsURL)
+            categories.append(StorageCategory(
+                name: "Documents",
+                size: docsSize,
+                path: documentsURL,
+                canDelete: false,
+                icon: "doc.text"
+            ))
+        }
+
+        // App Support
+        if let appSupportURL = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first {
+            let appSupportSize = calculateDirectorySize(appSupportURL)
+            categories.append(StorageCategory(
+                name: "App Data",
+                size: appSupportSize,
+                path: appSupportURL,
+                canDelete: false,
+                icon: "internaldrive"
+            ))
+        }
+
+        // URL Cache size
+        let urlCacheSize = UInt64(URLCache.shared.currentDiskUsage)
+        categories.append(StorageCategory(
+            name: "Network Cache",
+            size: urlCacheSize,
+            path: nil,
+            canDelete: true,
+            icon: "network"
+        ))
+
+        return categories.sorted { $0.size > $1.size }
+    }
+
+    func cleanCategory(_ category: StorageCategory) -> UInt64 {
+        guard category.canDelete else { return 0 }
+
+        var cleanedSize: UInt64 = 0
+
+        if category.name == "Network Cache" {
+            cleanedSize = UInt64(URLCache.shared.currentDiskUsage)
+            URLCache.shared.removeAllCachedResponses()
+            return cleanedSize
+        }
+
+        guard let path = category.path else { return 0 }
+
+        do {
+            let contents = try FileManager.default.contentsOfDirectory(
+                at: path,
+                includingPropertiesForKeys: [.fileSizeKey],
+                options: [.skipsHiddenFiles]
+            )
+
+            for fileURL in contents {
+                do {
+                    if let fileSize = try fileURL.resourceValues(forKeys: [.fileSizeKey]).fileSize {
+                        cleanedSize += UInt64(fileSize)
+                    }
+                    try FileManager.default.removeItem(at: fileURL)
+                } catch {
+                    print("Error removing file: \(error)")
+                }
+            }
+        } catch {
+            print("Error cleaning directory: \(error)")
+        }
+
+        return cleanedSize
+    }
+
+    func cleanAll() -> (totalCleaned: UInt64, categoriesCleaned: Int) {
+        let categories = analyzeStorage().filter { $0.canDelete }
+        var totalCleaned: UInt64 = 0
+        var categoriesCleaned = 0
+
+        for category in categories {
+            let cleaned = cleanCategory(category)
+            if cleaned > 0 {
+                totalCleaned += cleaned
+                categoriesCleaned += 1
+            }
+        }
+
+        return (totalCleaned, categoriesCleaned)
+    }
+
+    private func calculateDirectorySize(_ url: URL) -> UInt64 {
+        var totalSize: UInt64 = 0
+
+        guard let enumerator = FileManager.default.enumerator(
+            at: url,
+            includingPropertiesForKeys: [.fileSizeKey, .isDirectoryKey],
+            options: [.skipsHiddenFiles]
+        ) else {
+            return 0
+        }
+
+        for case let fileURL as URL in enumerator {
+            do {
+                let resourceValues = try fileURL.resourceValues(forKeys: [.fileSizeKey, .isDirectoryKey])
+
+                if let isDirectory = resourceValues.isDirectory, !isDirectory {
+                    if let fileSize = resourceValues.fileSize {
+                        totalSize += UInt64(fileSize)
+                    }
+                }
+            } catch {
+                continue
+            }
+        }
+
+        return totalSize
+    }
+}
+
 @Observable
 @MainActor
 class MetricsManager {

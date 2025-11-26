@@ -12,6 +12,7 @@ import SystemConfiguration.CaptiveNetwork
 import CoreTelephony
 import Network
 import NetworkExtension
+import Metal
 
 class SystemMetricsCollector {
 
@@ -675,5 +676,93 @@ class SystemMetricsCollector {
 
         // For 3G and earlier, band info is less critical
         return nil
+    }
+
+    // MARK: - GPU & Neural Engine Info
+
+    func collectGPUInfo() -> GPUInfo {
+        guard let device = MTLCreateSystemDefaultDevice() else {
+            return .zero
+        }
+
+        // GPU Family detection
+        var family = "Unknown"
+        if #available(iOS 16.0, *) {
+            if device.supportsFamily(.apple9) {
+                family = "Apple 9"
+            } else if device.supportsFamily(.apple8) {
+                family = "Apple 8"
+            } else if device.supportsFamily(.apple7) {
+                family = "Apple 7"
+            } else if device.supportsFamily(.apple6) {
+                family = "Apple 6"
+            } else if device.supportsFamily(.apple5) {
+                family = "Apple 5"
+            } else if device.supportsFamily(.apple4) {
+                family = "Apple 4"
+            }
+        }
+
+        // Neural Engine detection based on device model
+        var neuralEngineGen: String?
+        var neuralEngineCores: Int?
+
+        var systemInfo = utsname()
+        uname(&systemInfo)
+        let modelCode = withUnsafePointer(to: &systemInfo.machine) {
+            $0.withMemoryRebound(to: CChar.self, capacity: 1) {
+                String(validatingUTF8: $0)
+            }
+        } ?? "Unknown"
+
+        // Map device model to Neural Engine info
+        if modelCode.contains("iPhone") {
+            if modelCode.contains("16,") || modelCode.contains("17,") {
+                neuralEngineGen = "Gen 6 (A17 Pro / A18)"
+                neuralEngineCores = 16
+            } else if modelCode.contains("15,") {
+                neuralEngineGen = "Gen 5 (A16 Bionic)"
+                neuralEngineCores = 16
+            } else if modelCode.contains("14,") {
+                neuralEngineGen = "Gen 4 (A15 Bionic)"
+                neuralEngineCores = 16
+            } else if modelCode.contains("13,") {
+                neuralEngineGen = "Gen 3 (A14 Bionic)"
+                neuralEngineCores = 16
+            } else if modelCode.contains("12,") {
+                neuralEngineGen = "Gen 2 (A13 Bionic)"
+                neuralEngineCores = 8
+            } else if modelCode.contains("11,") {
+                neuralEngineGen = "Gen 1 (A12 Bionic)"
+                neuralEngineCores = 8
+            }
+        } else if modelCode.contains("iPad") {
+            if modelCode.contains("14,") || modelCode.contains("15,") {
+                neuralEngineGen = "Gen 5/6 (M2/M4)"
+                neuralEngineCores = 16
+            } else if modelCode.contains("13,") {
+                neuralEngineGen = "Gen 4 (M1/A14)"
+                neuralEngineCores = 16
+            }
+        }
+
+        // Check for advanced features
+        let supportsRaytracing = device.supportsRaytracing
+
+        // Mesh shaders support is inferred from GPU family
+        let supportsMeshShaders = family.contains("Apple 8") || family.contains("Apple 9")
+
+        return GPUInfo(
+            name: device.name,
+            family: family,
+            maxThreadsPerThreadgroup: device.maxThreadsPerThreadgroup.width,
+            recommendedMaxWorkingSetSize: device.recommendedMaxWorkingSetSize,
+            currentAllocatedSize: UInt64(device.currentAllocatedSize),
+            hasUnifiedMemory: device.hasUnifiedMemory,
+            supportsRaytracing: supportsRaytracing,
+            supportsMeshShaders: supportsMeshShaders,
+            neuralEngineGeneration: neuralEngineGen,
+            neuralEngineCores: neuralEngineCores
+        )
     }
 }

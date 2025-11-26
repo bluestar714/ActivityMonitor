@@ -12,6 +12,8 @@ struct SettingsView: View {
     @Environment(SettingsManager.self) private var settingsManager
     @Environment(MetricsManager.self) private var metricsManager
     @Environment(\.dismiss) private var dismiss
+    @State private var showShareSheet = false
+    @State private var fileToShare: URL?
 
     var body: some View {
         NavigationStack {
@@ -237,6 +239,16 @@ struct SettingsView: View {
 
                 // Actions Section
                 Section {
+                    Button(action: {
+                        if let fileURL = metricsManager.exportDataAsCSV() {
+                            fileToShare = fileURL
+                            showShareSheet = true
+                        }
+                    }) {
+                        Label("Export Data", systemImage: "square.and.arrow.up")
+                            .font(.system(size: 16, weight: .medium, design: .rounded))
+                    }
+
                     Button(role: .destructive, action: {
                         withAnimation {
                             metricsManager.clearHistory()
@@ -252,7 +264,7 @@ struct SettingsView: View {
                     Text("Data")
                         .font(.system(size: 13, weight: .semibold, design: .rounded))
                 } footer: {
-                    Text("Remove all collected performance data.")
+                    Text("Export collected data as CSV or remove all performance data.")
                         .font(.system(size: 13, design: .rounded))
                 }
 
@@ -299,6 +311,11 @@ struct SettingsView: View {
                         Text("Done")
                             .font(.system(size: 16, weight: .semibold, design: .rounded))
                     }
+                }
+            }
+            .sheet(isPresented: $showShareSheet) {
+                if let fileURL = fileToShare {
+                    ShareSheet(items: [fileURL])
                 }
             }
         }
@@ -386,6 +403,19 @@ struct MetricToggle: View {
         case .diskIOTotal: return .purple
         }
     }
+}
+
+// MARK: - Share Sheet
+
+struct ShareSheet: UIViewControllerRepresentable {
+    let items: [Any]
+
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        let controller = UIActivityViewController(activityItems: items, applicationActivities: nil)
+        return controller
+    }
+
+    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
 }
 
 // MARK: - Preview

@@ -12,6 +12,7 @@ import WidgetKit
 enum AppTheme: String, Codable, CaseIterable {
     case light = "Light"
     case dark = "Dark"
+    case auto = "Auto"
 }
 
 struct AppSettings: Codable {
@@ -48,7 +49,7 @@ struct AppSettings: Codable {
         widgetMetric1: .cpuTotal, // Default to CPU Total
         widgetMetric2: .memoryTotal, // Default to Memory Total
         pipMetric: .cpuTotal, // Default to CPU Total for PiP
-        appTheme: .dark, // Default to Dark theme
+        appTheme: .auto, // Default to Auto theme
         hapticsEnabled: true // Default to enabled
     )
 }

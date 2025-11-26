@@ -32,10 +32,16 @@ struct ContentView: View {
                             } label: {
                                 Label("Settings", systemImage: "gearshape.fill")
                                     .symbolRenderingMode(.hierarchical)
+                                    .font(.system(size: 16, weight: .semibold))
                             }
                             .buttonStyle(.bordered)
                             .buttonBorderShape(.capsule)
                             .tint(.blue)
+                            .background {
+                                Capsule()
+                                    .fill(.ultraThinMaterial)
+                                    .shadow(color: .blue.opacity(0.2), radius: 8, x: 0, y: 4)
+                            }
                             .sensoryFeedback(.selection, trigger: showingSettings) { _, _ in
                                 settingsManager.settings.hapticsEnabled
                             }
@@ -52,9 +58,6 @@ struct ContentView: View {
                 PerformanceView()
                     .navigationTitle("Performance")
                     .navigationBarTitleDisplayMode(.large)
-                    .toolbar {
-                        toolbarContent
-                    }
             }
             .tabItem {
                 Label("Performance", systemImage: "speedometer")
@@ -66,9 +69,6 @@ struct ContentView: View {
                 DeviceInfoTabView()
                     .navigationTitle("Device Info")
                     .navigationBarTitleDisplayMode(.large)
-                    .toolbar {
-                        toolbarContent
-                    }
             }
             .tabItem {
                 Label("Device", systemImage: "cpu")
@@ -113,10 +113,16 @@ struct ContentView: View {
                             systemImage: liveActivityActive ? "livephoto" : "livephoto.slash"
                         )
                         .symbolRenderingMode(.multicolor)
+                        .font(.system(size: 15, weight: .semibold))
                     }
                     .buttonStyle(.bordered)
                     .buttonBorderShape(.capsule)
                     .tint(liveActivityActive ? .green : .gray)
+                    .background {
+                        Capsule()
+                            .fill(.ultraThinMaterial)
+                            .shadow(color: liveActivityActive ? .green.opacity(0.3) : .gray.opacity(0.15), radius: 8, x: 0, y: 4)
+                    }
                     .sensoryFeedback(.selection, trigger: liveActivityActive) { _, _ in
                         settingsManager.settings.hapticsEnabled
                     }
@@ -131,11 +137,17 @@ struct ContentView: View {
                         systemImage: pipManager.isPiPActive ? "pip.enter" : "pip.exit"
                     )
                     .symbolRenderingMode(.monochrome)
+                    .font(.system(size: 15, weight: .semibold))
                 }
                 .buttonStyle(.bordered)
                 .buttonBorderShape(.capsule)
                 .tint(pipManager.isPiPActive ? .green : .gray)
                 .disabled(!pipManager.isPiPPossible)
+                .background {
+                    Capsule()
+                        .fill(.ultraThinMaterial)
+                        .shadow(color: pipManager.isPiPActive ? .green.opacity(0.3) : .gray.opacity(0.15), radius: 8, x: 0, y: 4)
+                }
                 .sensoryFeedback(.selection, trigger: pipManager.isPiPActive) { _, _ in
                     settingsManager.settings.hapticsEnabled
                 }

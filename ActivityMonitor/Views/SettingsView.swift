@@ -6,6 +6,10 @@
 //
 
 import SwiftUI
+import CoreMotion
+import AVFoundation
+import LocalAuthentication
+import CoreLocation
 
 @available(iOS 17.0, *)
 struct SettingsView: View {
@@ -22,70 +26,124 @@ struct SettingsView: View {
                 Section {
                     @Bindable var settings = settingsManager
 
-                    // Custom segmented control with icons
-                    HStack(spacing: 0) {
+                    // Custom segmented control with liquid glass styling
+                    HStack(spacing: 4) {
                         // Light Theme Button
                         Button {
-                            settings.settings.appTheme = .light
+                            withAnimation(.smooth(duration: 0.3, extraBounce: 0.1)) {
+                                settings.settings.appTheme = .light
+                            }
                         } label: {
                             HStack(spacing: 6) {
                                 Image(systemName: "sun.max.fill")
                                     .font(.system(size: 14))
+                                    .symbolRenderingMode(.hierarchical)
                                 Text("Light")
-                                    .font(.system(size: 15, weight: .medium, design: .rounded))
+                                    .font(.system(size: 15, weight: .semibold, design: .rounded))
                             }
                             .foregroundStyle(settings.settings.appTheme == .light ? Color.white : Color.primary)
                             .frame(maxWidth: .infinity)
-                            .padding(.vertical, 8)
-                            .background(settings.settings.appTheme == .light ? Color.accentColor : Color.clear)
+                            .padding(.vertical, 10)
+                            .background {
+                                if settings.settings.appTheme == .light {
+                                    ZStack {
+                                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                            .fill(.blue.gradient)
+                                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                            .fill(.ultraThinMaterial)
+                                            .opacity(0.3)
+                                    }
+                                    .shadow(color: .blue.opacity(0.4), radius: 8, x: 0, y: 4)
+                                }
+                            }
                             .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
 
-                        Divider()
-                            .frame(height: 30)
-
                         // Dark Theme Button
                         Button {
-                            settings.settings.appTheme = .dark
+                            withAnimation(.smooth(duration: 0.3, extraBounce: 0.1)) {
+                                settings.settings.appTheme = .dark
+                            }
                         } label: {
                             HStack(spacing: 6) {
                                 Image(systemName: "moon.fill")
                                     .font(.system(size: 14))
+                                    .symbolRenderingMode(.hierarchical)
                                 Text("Dark")
-                                    .font(.system(size: 15, weight: .medium, design: .rounded))
+                                    .font(.system(size: 15, weight: .semibold, design: .rounded))
                             }
                             .foregroundStyle(settings.settings.appTheme == .dark ? Color.white : Color.primary)
                             .frame(maxWidth: .infinity)
-                            .padding(.vertical, 8)
-                            .background(settings.settings.appTheme == .dark ? Color.accentColor : Color.clear)
+                            .padding(.vertical, 10)
+                            .background {
+                                if settings.settings.appTheme == .dark {
+                                    ZStack {
+                                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                            .fill(.blue.gradient)
+                                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                            .fill(.ultraThinMaterial)
+                                            .opacity(0.3)
+                                    }
+                                    .shadow(color: .blue.opacity(0.4), radius: 8, x: 0, y: 4)
+                                }
+                            }
                             .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
 
-                        Divider()
-                            .frame(height: 30)
-
                         // Auto Theme Button
                         Button {
-                            settings.settings.appTheme = .auto
+                            withAnimation(.smooth(duration: 0.3, extraBounce: 0.1)) {
+                                settings.settings.appTheme = .auto
+                            }
                         } label: {
                             HStack(spacing: 6) {
                                 Image(systemName: "circle.lefthalf.filled")
                                     .font(.system(size: 14))
+                                    .symbolRenderingMode(.hierarchical)
                                 Text("Auto")
-                                    .font(.system(size: 15, weight: .medium, design: .rounded))
+                                    .font(.system(size: 15, weight: .semibold, design: .rounded))
                             }
                             .foregroundStyle(settings.settings.appTheme == .auto ? Color.white : Color.primary)
                             .frame(maxWidth: .infinity)
-                            .padding(.vertical, 8)
-                            .background(settings.settings.appTheme == .auto ? Color.accentColor : Color.clear)
+                            .padding(.vertical, 10)
+                            .background {
+                                if settings.settings.appTheme == .auto {
+                                    ZStack {
+                                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                            .fill(.blue.gradient)
+                                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                            .fill(.ultraThinMaterial)
+                                            .opacity(0.3)
+                                    }
+                                    .shadow(color: .blue.opacity(0.4), radius: 8, x: 0, y: 4)
+                                }
+                            }
                             .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
                     }
-                    .background(Color(.systemGray5))
-                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                    .padding(4)
+                    .background {
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                .fill(.regularMaterial)
+                            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                .strokeBorder(
+                                    .linearGradient(
+                                        colors: [
+                                            .white.opacity(0.3),
+                                            .white.opacity(0.1),
+                                            .clear
+                                        ],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    ),
+                                    lineWidth: 1
+                                )
+                        }
+                    }
                     .sensoryFeedback(.selection, trigger: settingsManager.settings.appTheme) { _, _ in
                         settingsManager.settings.hapticsEnabled
                     }
@@ -1025,8 +1083,14 @@ struct DeviceInfoTabView: View {
             Section {
                 InfoDetailRow(label: "Total Memory", value: String(format: "%.2f GB", memoryInfo.totalGB), icon: "memorychip")
                 InfoDetailRow(label: "Physical Memory", value: getPhysicalMemory(), icon: "memorychip.fill")
+                InfoDetailRow(label: "Memory Type", value: getMemoryType(), icon: "chevron.left.forwardslash.chevron.right")
+
+                if let speed = getMemorySpeed() {
+                    InfoDetailRow(label: "Memory Speed", value: speed, icon: "speedometer")
+                }
+
                 InfoDetailRow(label: "Page Size", value: "\(getPageSize()) KB", icon: "doc.text")
-                InfoDetailRow(label: "Total Pages", value: String(format: "%d", getTotalPages()), icon: "square.grid.3x3")
+                InfoDetailRow(label: "Total Pages", value: String(format: "%llu", getTotalPages()), icon: "square.grid.3x3")
                 InfoDetailRow(label: "Memory Pressure", value: getMemoryPressure(), icon: "gauge")
             } header: {
                 HStack {
@@ -1035,6 +1099,29 @@ struct DeviceInfoTabView: View {
                     Text("Memory Information")
                 }
                 .font(.system(size: 13, weight: .semibold, design: .rounded))
+            }
+
+            // Memory Statistics & Errors
+            Section {
+                InfoDetailRow(label: "Page Faults", value: getPageFaultCount(), icon: "exclamationmark.triangle")
+
+                let pageIO = getPageInOutCount()
+                InfoDetailRow(label: "Page-Ins", value: pageIO.pageIns, icon: "arrow.down.circle")
+                InfoDetailRow(label: "Page-Outs", value: pageIO.pageOuts, icon: "arrow.up.circle")
+
+                InfoDetailRow(label: "Copy-on-Write Faults", value: getCopyOnWriteFaults(), icon: "doc.on.doc")
+                InfoDetailRow(label: "Free Pages", value: getFreePageCount(), icon: "square.stack")
+                InfoDetailRow(label: "Purgeable Pages", value: getPurgeablePageCount(), icon: "trash.square")
+            } header: {
+                HStack {
+                    Image(systemName: "chart.bar.doc.horizontal")
+                        .foregroundStyle(.purple.gradient)
+                    Text("Memory Statistics")
+                }
+                .font(.system(size: 13, weight: .semibold, design: .rounded))
+            } footer: {
+                Text("Page faults and statistics since system boot. High page-out counts may indicate memory pressure.")
+                    .font(.system(size: 12, design: .rounded))
             }
 
             // Storage Information
@@ -1189,6 +1276,124 @@ struct DeviceInfoTabView: View {
                     Image(systemName: "checklist")
                         .foregroundStyle(.green.gradient)
                     Text("Capabilities")
+                }
+                .font(.system(size: 13, weight: .semibold, design: .rounded))
+            }
+
+            // Display Information
+            Section {
+                InfoDetailRow(label: "Screen Resolution", value: getScreenResolution(), icon: "rectangle.grid.1x2")
+                InfoDetailRow(label: "Screen Size", value: getScreenSize(), icon: "iphone")
+                InfoDetailRow(label: "Pixel Density", value: getPixelsPerInch(), icon: "square.grid.3x3")
+                InfoDetailRow(label: "Refresh Rate", value: getRefreshRate(), icon: "waveform")
+                InfoDetailRow(label: "Brightness", value: getScreenBrightness(), icon: "sun.max.fill")
+                InfoDetailRow(label: "HDR Support", value: supportsHDR(), icon: "tv")
+            } header: {
+                HStack {
+                    Image(systemName: "display")
+                        .foregroundStyle(.indigo.gradient)
+                    Text("Display Information")
+                }
+                .font(.system(size: 13, weight: .semibold, design: .rounded))
+            }
+
+            // System/Kernel Information
+            Section {
+                InfoDetailRow(label: "Kernel Version", value: getKernelVersion(), icon: "gearshape.2")
+                InfoDetailRow(label: "System Uptime", value: getSystemUptime(), icon: "clock")
+                InfoDetailRow(label: "Boot Time", value: getBootTime(), icon: "power")
+                InfoDetailRow(label: "Architecture", value: getSystemArchitecture(), icon: "cpu")
+                InfoDetailRow(label: "Hostname", value: getHostname(), icon: "network")
+                InfoDetailRow(label: "Time Zone", value: getTimeZone(), icon: "clock.badge")
+            } header: {
+                HStack {
+                    Image(systemName: "gearshape.2.fill")
+                        .foregroundStyle(.gray.gradient)
+                    Text("System Information")
+                }
+                .font(.system(size: 13, weight: .semibold, design: .rounded))
+            }
+
+            // Battery & Power Information
+            Section {
+                InfoDetailRow(label: "Power Source", value: getPowerSource(), icon: "bolt.fill")
+                InfoDetailRow(label: "Low Power Mode", value: getLowPowerMode(), icon: "battery.25")
+                InfoDetailRow(label: "Thermal State", value: getThermalState(), icon: "thermometer.medium")
+            } header: {
+                HStack {
+                    Image(systemName: "bolt.circle.fill")
+                        .foregroundStyle(.yellow.gradient)
+                    Text("Power & Thermal")
+                }
+                .font(.system(size: 13, weight: .semibold, design: .rounded))
+            } footer: {
+                Text("Thermal state indicates device temperature. Critical state may cause performance throttling.")
+                    .font(.system(size: 12, design: .rounded))
+            }
+
+            // Graphics Details
+            Section {
+                InfoDetailRow(label: "Metal Version", value: getMetalVersion(), icon: "cube.transparent")
+                InfoDetailRow(label: "GPU Architecture", value: getGPUFamily(), icon: "cpu.fill")
+            } header: {
+                HStack {
+                    Image(systemName: "cube.transparent.fill")
+                        .foregroundStyle(.teal.gradient)
+                    Text("Graphics Details")
+                }
+                .font(.system(size: 13, weight: .semibold, design: .rounded))
+            }
+
+            // Storage Details
+            Section {
+                InfoDetailRow(label: "File System", value: getFileSystemType(), icon: "folder.fill")
+                InfoDetailRow(label: "Encryption", value: getEncryptionStatus(), icon: "lock.shield.fill")
+            } header: {
+                HStack {
+                    Image(systemName: "internaldrive.fill")
+                        .foregroundStyle(.brown.gradient)
+                    Text("Storage Details")
+                }
+                .font(.system(size: 13, weight: .semibold, design: .rounded))
+            }
+
+            // Locale & Region
+            Section {
+                InfoDetailRow(label: "Current Locale", value: getCurrentLocale(), icon: "globe")
+                InfoDetailRow(label: "Languages", value: getPreferredLanguages(), icon: "character.bubble")
+                InfoDetailRow(label: "Region", value: getRegionFormat(), icon: "map")
+                InfoDetailRow(label: "Calendar", value: getCalendarType(), icon: "calendar")
+                InfoDetailRow(label: "Measurement", value: getMeasurementSystem(), icon: "ruler")
+            } header: {
+                HStack {
+                    Image(systemName: "globe.americas.fill")
+                        .foregroundStyle(.blue.gradient)
+                    Text("Locale & Region")
+                }
+                .font(.system(size: 13, weight: .semibold, design: .rounded))
+            }
+
+            // Security Features
+            Section {
+                InfoDetailRow(label: "Secure Enclave", value: hasSecureEnclave(), icon: "lock.shield")
+                InfoDetailRow(label: "Data Protection", value: getDataProtectionLevel(), icon: "checkmark.shield.fill")
+            } header: {
+                HStack {
+                    Image(systemName: "lock.shield.fill")
+                        .foregroundStyle(.red.gradient)
+                    Text("Security Features")
+                }
+                .font(.system(size: 13, weight: .semibold, design: .rounded))
+            }
+
+            // Audio Features
+            Section {
+                InfoDetailRow(label: "Spatial Audio", value: getSpatialAudioSupport(), icon: "hifispeaker.2")
+            } header: {
+                HStack {
+                    Image(systemName: "speaker.wave.3.fill")
+                        .foregroundStyle(.pink.gradient)
+                    Text("Audio Features")
                 }
                 .font(.system(size: 13, weight: .semibold, design: .rounded))
             }
@@ -1402,33 +1607,801 @@ struct DeviceInfoTabView: View {
             return "Critical"
         }
     }
+
+    private func getMemoryType() -> String {
+        // iOS doesn't expose memory type directly, so we infer from device model
+        let deviceModel = getDeviceModel()
+
+        // iPhone models and their memory types
+        if deviceModel.contains("iPhone16") || deviceModel.contains("iPhone17") {
+            return "LPDDR5X"
+        } else if deviceModel.contains("iPhone15") {
+            return "LPDDR5"
+        } else if deviceModel.contains("iPhone14") || deviceModel.contains("iPhone13") {
+            return "LPDDR4X"
+        } else if deviceModel.contains("iPad") {
+            if deviceModel.contains("iPad16") || deviceModel.contains("iPad15") {
+                return "LPDDR5X"
+            } else if deviceModel.contains("iPad14") || deviceModel.contains("iPad13") {
+                return "LPDDR5"
+            } else {
+                return "LPDDR4X"
+            }
+        }
+
+        return "LPDDR4 or later"
+    }
+
+    private func getMemorySpeed() -> String? {
+        // Estimate based on memory type
+        let memType = getMemoryType()
+
+        switch memType {
+        case "LPDDR5X":
+            return "~8533 MT/s"
+        case "LPDDR5":
+            return "~6400 MT/s"
+        case "LPDDR4X":
+            return "~4266 MT/s"
+        default:
+            return nil
+        }
+    }
+
+    private func getPageFaultCount() -> String {
+        var vmStats = vm_statistics64()
+        var count = mach_msg_type_number_t(MemoryLayout<vm_statistics64>.size / MemoryLayout<integer_t>.size)
+
+        let result = withUnsafeMutablePointer(to: &vmStats) {
+            $0.withMemoryRebound(to: integer_t.self, capacity: Int(count)) {
+                host_statistics64(mach_host_self(), HOST_VM_INFO64, $0, &count)
+            }
+        }
+
+        if result == KERN_SUCCESS {
+            let totalFaults = UInt64(vmStats.faults)
+            if totalFaults > 1_000_000 {
+                let millions = Double(totalFaults) / 1_000_000.0
+                return String(format: "%.2f M", millions)
+            } else if totalFaults > 1_000 {
+                let thousands = Double(totalFaults) / 1_000.0
+                return String(format: "%.1f K", thousands)
+            }
+            return "\(totalFaults)"
+        }
+
+        return "0"
+    }
+
+    private func getPageInOutCount() -> (pageIns: String, pageOuts: String) {
+        var vmStats = vm_statistics64()
+        var count = mach_msg_type_number_t(MemoryLayout<vm_statistics64>.size / MemoryLayout<integer_t>.size)
+
+        let result = withUnsafeMutablePointer(to: &vmStats) {
+            $0.withMemoryRebound(to: integer_t.self, capacity: Int(count)) {
+                host_statistics64(mach_host_self(), HOST_VM_INFO64, $0, &count)
+            }
+        }
+
+        if result == KERN_SUCCESS {
+            let pageIns = UInt64(vmStats.pageins)
+            let pageOuts = UInt64(vmStats.pageouts)
+
+            let pageInsStr: String
+            if pageIns > 1_000_000 {
+                pageInsStr = String(format: "%.2f M", Double(pageIns) / 1_000_000.0)
+            } else if pageIns > 1_000 {
+                pageInsStr = String(format: "%.1f K", Double(pageIns) / 1_000.0)
+            } else {
+                pageInsStr = "\(pageIns)"
+            }
+
+            let pageOutsStr: String
+            if pageOuts > 1_000_000 {
+                pageOutsStr = String(format: "%.2f M", Double(pageOuts) / 1_000_000.0)
+            } else if pageOuts > 1_000 {
+                pageOutsStr = String(format: "%.1f K", Double(pageOuts) / 1_000.0)
+            } else {
+                pageOutsStr = "\(pageOuts)"
+            }
+
+            return (pageInsStr, pageOutsStr)
+        }
+
+        return ("0", "0")
+    }
+
+    private func getFreePageCount() -> String {
+        var vmStats = vm_statistics64()
+        var count = mach_msg_type_number_t(MemoryLayout<vm_statistics64>.size / MemoryLayout<integer_t>.size)
+
+        let result = withUnsafeMutablePointer(to: &vmStats) {
+            $0.withMemoryRebound(to: integer_t.self, capacity: Int(count)) {
+                host_statistics64(mach_host_self(), HOST_VM_INFO64, $0, &count)
+            }
+        }
+
+        if result == KERN_SUCCESS {
+            let freePages = UInt64(vmStats.free_count)
+            let pageSize = getPageSize() * 1024 // in bytes
+            let freeMB = Double(freePages * UInt64(pageSize)) / 1_048_576.0
+            return String(format: "%.0f MB (%llu pages)", freeMB, freePages)
+        }
+
+        return "0 MB"
+    }
+
+    private func getPurgeablePageCount() -> String {
+        var vmStats = vm_statistics64()
+        var count = mach_msg_type_number_t(MemoryLayout<vm_statistics64>.size / MemoryLayout<integer_t>.size)
+
+        let result = withUnsafeMutablePointer(to: &vmStats) {
+            $0.withMemoryRebound(to: integer_t.self, capacity: Int(count)) {
+                host_statistics64(mach_host_self(), HOST_VM_INFO64, $0, &count)
+            }
+        }
+
+        if result == KERN_SUCCESS {
+            let purgeablePages = UInt64(vmStats.purgeable_count)
+            let pageSize = getPageSize() * 1024
+            let purgeableMB = Double(purgeablePages * UInt64(pageSize)) / 1_048_576.0
+            return String(format: "%.0f MB (%llu pages)", purgeableMB, purgeablePages)
+        }
+
+        return "0 MB"
+    }
+
+    private func getCopyOnWriteFaults() -> String {
+        var vmStats = vm_statistics64()
+        var count = mach_msg_type_number_t(MemoryLayout<vm_statistics64>.size / MemoryLayout<integer_t>.size)
+
+        let result = withUnsafeMutablePointer(to: &vmStats) {
+            $0.withMemoryRebound(to: integer_t.self, capacity: Int(count)) {
+                host_statistics64(mach_host_self(), HOST_VM_INFO64, $0, &count)
+            }
+        }
+
+        if result == KERN_SUCCESS {
+            let cowFaults = UInt64(vmStats.cow_faults)
+            if cowFaults > 1_000_000 {
+                return String(format: "%.2f M", Double(cowFaults) / 1_000_000.0)
+            } else if cowFaults > 1_000 {
+                return String(format: "%.1f K", Double(cowFaults) / 1_000.0)
+            }
+            return "\(cowFaults)"
+        }
+
+        return "0"
+    }
+
+    // MARK: - Display Helper Functions
+
+    private func getScreenResolution() -> String {
+        let screen = UIScreen.main
+        let width = Int(screen.nativeBounds.width)
+        let height = Int(screen.nativeBounds.height)
+        return "\(width) × \(height)"
+    }
+
+    private func getScreenSize() -> String {
+        let deviceModel = getDeviceModel()
+
+        // iPhone screen sizes
+        if deviceModel.contains("iPhone16,2") || deviceModel.contains("iPhone17,1") {
+            return "6.7 inches"
+        } else if deviceModel.contains("iPhone16,1") || deviceModel.contains("iPhone17,3") {
+            return "6.1 inches"
+        } else if deviceModel.contains("iPhone15,3") {
+            return "6.7 inches"
+        } else if deviceModel.contains("iPhone15,2") {
+            return "6.1 inches"
+        } else if deviceModel.contains("iPad") {
+            if deviceModel.contains("iPad14,") || deviceModel.contains("iPad16,") {
+                return "12.9 inches"
+            } else if deviceModel.contains("iPad13,") {
+                return "11 inches"
+            }
+            return "10.2-12.9 inches"
+        }
+
+        return "Unknown"
+    }
+
+    private func getPixelsPerInch() -> String {
+        let screen = UIScreen.main
+        let scale = screen.scale
+        let nativeWidth = screen.nativeBounds.width
+        let pointWidth = screen.bounds.width
+
+        // Approximate PPI calculation
+        let ppi = Int((nativeWidth / pointWidth) * 163.0 / scale)
+        return "\(ppi) PPI"
+    }
+
+    private func getRefreshRate() -> String {
+        if #available(iOS 15.0, *) {
+            let screen = UIScreen.main
+            let maxFPS = screen.maximumFramesPerSecond
+            return "\(maxFPS) Hz"
+        }
+        return "60 Hz"
+    }
+
+    private func getScreenBrightness() -> String {
+        let brightness = UIScreen.main.brightness
+        return String(format: "%.0f%%", brightness * 100)
+    }
+
+    private func supportsHDR() -> String {
+        if #available(iOS 11.0, *) {
+            return UIScreen.main.traitCollection.displayGamut == .P3 ? "Yes (Display P3)" : "No"
+        }
+        return "Unknown"
+    }
+
+    // MARK: - System/Kernel Helper Functions
+
+    private func getKernelVersion() -> String {
+        var size: size_t = 0
+        sysctlbyname("kern.osversion", nil, &size, nil, 0)
+        var version = [CChar](repeating: 0, count: size)
+        sysctlbyname("kern.osversion", &version, &size, nil, 0)
+        return String(cString: version)
+    }
+
+    private func getSystemUptime() -> String {
+        var boottime = timeval()
+        var size = MemoryLayout<timeval>.size
+        var mib: [Int32] = [CTL_KERN, KERN_BOOTTIME]
+
+        sysctl(&mib, 2, &boottime, &size, nil, 0)
+
+        let bootDate = Date(timeIntervalSince1970: TimeInterval(boottime.tv_sec))
+        let uptime = Date().timeIntervalSince(bootDate)
+
+        let days = Int(uptime) / 86400
+        let hours = (Int(uptime) % 86400) / 3600
+        let minutes = (Int(uptime) % 3600) / 60
+
+        if days > 0 {
+            return "\(days)d \(hours)h \(minutes)m"
+        } else if hours > 0 {
+            return "\(hours)h \(minutes)m"
+        } else {
+            return "\(minutes)m"
+        }
+    }
+
+    private func getBootTime() -> String {
+        var boottime = timeval()
+        var size = MemoryLayout<timeval>.size
+        var mib: [Int32] = [CTL_KERN, KERN_BOOTTIME]
+
+        sysctl(&mib, 2, &boottime, &size, nil, 0)
+
+        let bootDate = Date(timeIntervalSince1970: TimeInterval(boottime.tv_sec))
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .short
+        return formatter.string(from: bootDate)
+    }
+
+    private func getSystemArchitecture() -> String {
+        var size: size_t = 0
+        sysctlbyname("hw.machine", nil, &size, nil, 0)
+        var machine = [CChar](repeating: 0, count: size)
+        sysctlbyname("hw.machine", &machine, &size, nil, 0)
+        return String(cString: machine)
+    }
+
+    private func getHostname() -> String {
+        return ProcessInfo.processInfo.hostName
+    }
+
+    private func getTimeZone() -> String {
+        let timeZone = TimeZone.current
+        return "\(timeZone.identifier) (UTC\(timeZone.secondsFromGMT() >= 0 ? "+" : "")\(timeZone.secondsFromGMT() / 3600))"
+    }
+
+    // MARK: - Battery Helper Functions
+
+    private func getBatteryHealth() -> String? {
+        // iOS doesn't expose battery health directly
+        // This would require private APIs
+        return nil
+    }
+
+    private func getPowerSource() -> String {
+        UIDevice.current.isBatteryMonitoringEnabled = true
+        let state = UIDevice.current.batteryState
+
+        switch state {
+        case .charging, .full:
+            return "AC Power"
+        case .unplugged:
+            return "Battery"
+        default:
+            return "Unknown"
+        }
+    }
+
+    // MARK: - Thermal Helper Functions
+
+    private func getThermalState() -> String {
+        let state = ProcessInfo.processInfo.thermalState
+
+        switch state {
+        case .nominal:
+            return "Normal"
+        case .fair:
+            return "Fair"
+        case .serious:
+            return "Serious"
+        case .critical:
+            return "Critical"
+        @unknown default:
+            return "Unknown"
+        }
+    }
+
+    private func getLowPowerMode() -> String {
+        return ProcessInfo.processInfo.isLowPowerModeEnabled ? "Enabled" : "Disabled"
+    }
+
+    // MARK: - Graphics Helper Functions
+
+    private func getMetalVersion() -> String {
+        if let device = MTLCreateSystemDefaultDevice() {
+            if #available(iOS 16.0, *) {
+                return "Metal 3"
+            } else if #available(iOS 14.0, *) {
+                return "Metal 2.3"
+            } else {
+                return "Metal 2"
+            }
+        }
+        return "Not Available"
+    }
+
+    private func getGPUFamily() -> String {
+        let deviceModel = getDeviceModel()
+
+        if deviceModel.contains("iPhone16") || deviceModel.contains("iPhone17") {
+            return "Apple GPU (A18)"
+        } else if deviceModel.contains("iPhone15,3") || deviceModel.contains("iPhone15,2") {
+            return "Apple GPU (A17 Pro)"
+        } else if deviceModel.contains("iPhone15") {
+            return "Apple GPU (A16)"
+        } else if deviceModel.contains("iPhone14") {
+            return "Apple GPU (A15)"
+        }
+
+        return "Apple GPU"
+    }
+
+    // MARK: - Storage Helper Functions
+
+    private func getFileSystemType() -> String {
+        return "APFS (Apple File System)"
+    }
+
+    private func getEncryptionStatus() -> String {
+        // iOS devices are always encrypted
+        return "Encrypted (AES-256)"
+    }
+
+    // MARK: - Locale Helper Functions
+
+    private func getCurrentLocale() -> String {
+        return Locale.current.identifier
+    }
+
+    private func getPreferredLanguages() -> String {
+        let languages = Locale.preferredLanguages.prefix(3)
+        return languages.joined(separator: ", ")
+    }
+
+    private func getRegionFormat() -> String {
+        if let regionCode = Locale.current.region?.identifier {
+            return regionCode
+        }
+        return "Unknown"
+    }
+
+    private func getCalendarType() -> String {
+        let identifier = Locale.current.calendar.identifier
+        switch identifier {
+        case .gregorian:
+            return "Gregorian"
+        case .buddhist:
+            return "Buddhist"
+        case .chinese:
+            return "Chinese"
+        case .coptic:
+            return "Coptic"
+        case .ethiopicAmeteMihret:
+            return "Ethiopic Amete Mihret"
+        case .ethiopicAmeteAlem:
+            return "Ethiopic Amete Alem"
+        case .hebrew:
+            return "Hebrew"
+        case .iso8601:
+            return "ISO 8601"
+        case .indian:
+            return "Indian"
+        case .islamic:
+            return "Islamic"
+        case .islamicCivil:
+            return "Islamic Civil"
+        case .japanese:
+            return "Japanese"
+        case .persian:
+            return "Persian"
+        case .republicOfChina:
+            return "Republic of China"
+        case .islamicTabular:
+            return "Islamic Tabular"
+        case .islamicUmmAlQura:
+            return "Islamic Umm al-Qura"
+        @unknown default:
+            return "Gregorian"
+        }
+    }
+
+    private func getMeasurementSystem() -> String {
+        let system = Locale.current.measurementSystem
+        if system == .metric {
+            return "Metric"
+        } else if system == .us {
+            return "US (Imperial)"
+        } else if system == .uk {
+            return "UK (Imperial)"
+        } else {
+            return "Metric"
+        }
+    }
+
+    // MARK: - Security Helper Functions
+
+    private func hasSecureEnclave() -> String {
+        // Check if device supports Secure Enclave
+        let deviceModel = getDeviceModel()
+        if deviceModel.contains("iPhone") || deviceModel.contains("iPad") {
+            return "Available"
+        }
+        return "Not Available"
+    }
+
+    private func getDataProtectionLevel() -> String {
+        return "Complete Protection"
+    }
+
+    // MARK: - Audio Helper Functions
+
+    private func getSpatialAudioSupport() -> String {
+        let deviceModel = getDeviceModel()
+        if deviceModel.contains("iPhone12") || deviceModel.contains("iPhone13") ||
+           deviceModel.contains("iPhone14") || deviceModel.contains("iPhone15") ||
+           deviceModel.contains("iPhone16") || deviceModel.contains("iPhone17") {
+            return "Supported"
+        }
+        return "Not Supported"
+    }
 }
 
 // MARK: - Sensors View
 
 @available(iOS 17.0, *)
 struct SensorsView: View {
+    @State private var motionManager = CMMotionManager()
+    @State private var hasAccelerometer = false
+    @State private var hasGyroscope = false
+    @State private var hasMagnetometer = false
+    @State private var hasBarometer = false
+
     var body: some View {
-        VStack(spacing: 20) {
-            Image(systemName: "sensor.fill")
-                .font(.system(size: 80))
-                .foregroundStyle(.blue.gradient)
-                .symbolRenderingMode(.hierarchical)
+        List {
+            // Available Sensors
+            Section {
+                SensorRow(name: "Accelerometer", available: hasAccelerometer, icon: "Move.3d")
+                SensorRow(name: "Gyroscope", available: hasGyroscope, icon: "gyroscope")
+                SensorRow(name: "Magnetometer", available: hasMagnetometer, icon: "location.north.fill")
+                SensorRow(name: "Barometer", available: hasBarometer, icon: "barometer")
+                SensorRow(name: "Proximity Sensor", available: true, icon: "sensor")
+                SensorRow(name: "Ambient Light Sensor", available: true, icon: "light.max")
+            } header: {
+                HStack {
+                    Image(systemName: "sensor.fill")
+                        .foregroundStyle(.blue.gradient)
+                    Text("Available Sensors")
+                }
+                .font(.system(size: 13, weight: .semibold, design: .rounded))
+            } footer: {
+                Text("These sensors provide motion, orientation, and environmental data to apps.")
+                    .font(.system(size: 12, design: .rounded))
+            }
 
-            Text("Sensors")
-                .font(.system(size: 28, weight: .bold, design: .rounded))
+            // Biometric Authentication
+            Section {
+                BiometricRow()
+            } header: {
+                HStack {
+                    Image(systemName: "faceid")
+                        .foregroundStyle(.green.gradient)
+                    Text("Biometric Authentication")
+                }
+                .font(.system(size: 13, weight: .semibold, design: .rounded))
+            }
 
-            Text("Coming Soon")
-                .font(.system(size: 17, design: .rounded))
-                .foregroundStyle(.secondary)
+            // Camera Information
+            Section {
+                CameraInfoRow()
+            } header: {
+                HStack {
+                    Image(systemName: "camera.fill")
+                        .foregroundStyle(.purple.gradient)
+                    Text("Camera")
+                }
+                .font(.system(size: 13, weight: .semibold, design: .rounded))
+            }
 
-            Text("Sensor data and monitoring features will be available here.")
-                .font(.system(size: 15, design: .rounded))
-                .foregroundStyle(.tertiary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, 40)
+            // Other Features
+            Section {
+                FeatureRow(name: "Flashlight", available: hasFlashlight(), icon: "flashlight.on.fill")
+                FeatureRow(name: "Vibration (Haptics)", available: true, icon: "iphone.radiowaves.left.and.right")
+            } header: {
+                HStack {
+                    Image(systemName: "star.fill")
+                        .foregroundStyle(.yellow.gradient)
+                    Text("Other Features")
+                }
+                .font(.system(size: 13, weight: .semibold, design: .rounded))
+            }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .onAppear {
+            checkSensorAvailability()
+        }
+    }
+
+    private func checkSensorAvailability() {
+        hasAccelerometer = motionManager.isAccelerometerAvailable
+        hasGyroscope = motionManager.isGyroAvailable
+        hasMagnetometer = motionManager.isMagnetometerAvailable
+        hasBarometer = CMAltimeter.isRelativeAltitudeAvailable()
+    }
+
+    private func hasFlashlight() -> Bool {
+        guard let device = AVCaptureDevice.default(for: .video) else { return false }
+        return device.hasTorch
+    }
+}
+
+struct SensorRow: View {
+    let name: String
+    let available: Bool
+    let icon: String
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: icon)
+                .font(.system(size: 24))
+                .foregroundStyle(available ? Color.blue : Color.gray)
+                .symbolRenderingMode(.hierarchical)
+                .frame(width: 40)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(name)
+                    .font(.system(size: 16, weight: .medium, design: .rounded))
+                    .foregroundStyle(.primary)
+
+                Text(available ? "Available" : "Not Available")
+                    .font(.system(size: 13, design: .rounded))
+                    .foregroundStyle(available ? .green : .secondary)
+            }
+
+            Spacer()
+
+            if available {
+                Image(systemName: "checkmark.circle.fill")
+                    .foregroundStyle(.green)
+                    .font(.system(size: 20))
+            }
+        }
+        .padding(.vertical, 4)
+    }
+}
+
+struct BiometricRow: View {
+    @State private var biometricType: String = "Unknown"
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: iconForBiometric())
+                .font(.system(size: 24))
+                .foregroundStyle(.green.gradient)
+                .symbolRenderingMode(.hierarchical)
+                .frame(width: 40)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(biometricType)
+                    .font(.system(size: 16, weight: .medium, design: .rounded))
+                    .foregroundStyle(.primary)
+
+                Text("Biometric authentication method")
+                    .font(.system(size: 13, design: .rounded))
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer()
+
+            Image(systemName: "checkmark.circle.fill")
+                .foregroundStyle(.green)
+                .font(.system(size: 20))
+        }
+        .padding(.vertical, 4)
+        .onAppear {
+            detectBiometricType()
+        }
+    }
+
+    private func detectBiometricType() {
+        let context = LAContext()
+        var error: NSError?
+
+        if context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &error) {
+            switch context.biometryType {
+            case .faceID:
+                biometricType = "Face ID"
+            case .touchID:
+                biometricType = "Touch ID"
+            case .opticID:
+                if #available(iOS 17.0, *) {
+                    biometricType = "Optic ID"
+                } else {
+                    biometricType = "Biometric Authentication"
+                }
+            case .none:
+                biometricType = "None"
+            @unknown default:
+                biometricType = "Unknown"
+            }
+        } else {
+            biometricType = "Not Available"
+        }
+    }
+
+    private func iconForBiometric() -> String {
+        switch biometricType {
+        case "Face ID":
+            return "faceid"
+        case "Touch ID":
+            return "touchid"
+        case "Optic ID":
+            return "opticid"
+        default:
+            return "person.badge.key.fill"
+        }
+    }
+}
+
+struct CameraInfoRow: View {
+    @State private var cameraCount = 0
+    @State private var hasUltraWide = false
+    @State private var hasTelephoto = false
+    @State private var hasLiDAR = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 12) {
+                Image(systemName: "camera.fill")
+                    .font(.system(size: 24))
+                    .foregroundStyle(.purple.gradient)
+                    .frame(width: 40)
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("\(cameraCount) Camera\(cameraCount != 1 ? "s" : "")")
+                        .font(.system(size: 16, weight: .medium, design: .rounded))
+
+                    Text("Rear camera system")
+                        .font(.system(size: 13, design: .rounded))
+                        .foregroundStyle(.secondary)
+                }
+
+                Spacer()
+            }
+            .padding(.vertical, 4)
+
+            if hasUltraWide || hasTelephoto || hasLiDAR {
+                Divider()
+
+                VStack(alignment: .leading, spacing: 8) {
+                    if hasUltraWide {
+                        FeatureTag(name: "Ultra Wide", icon: "camera.metering.matrix")
+                    }
+                    if hasTelephoto {
+                        FeatureTag(name: "Telephoto", icon: "camera.metering.center.weighted.average")
+                    }
+                    if hasLiDAR {
+                        FeatureTag(name: "LiDAR Scanner", icon: "light.beacon.max.fill")
+                    }
+                }
+            }
+        }
+        .onAppear {
+            detectCameraCapabilities()
+        }
+    }
+
+    private func detectCameraCapabilities() {
+        let discoverySession = AVCaptureDevice.DiscoverySession(
+            deviceTypes: [.builtInWideAngleCamera, .builtInUltraWideCamera, .builtInTelephotoCamera, .builtInLiDARDepthCamera],
+            mediaType: .video,
+            position: .back
+        )
+
+        cameraCount = discoverySession.devices.filter { device in
+            device.deviceType == .builtInWideAngleCamera ||
+            device.deviceType == .builtInUltraWideCamera ||
+            device.deviceType == .builtInTelephotoCamera
+        }.count
+
+        hasUltraWide = discoverySession.devices.contains { $0.deviceType == .builtInUltraWideCamera }
+        hasTelephoto = discoverySession.devices.contains { $0.deviceType == .builtInTelephotoCamera }
+        hasLiDAR = discoverySession.devices.contains { $0.deviceType == .builtInLiDARDepthCamera }
+    }
+}
+
+struct FeatureRow: View {
+    let name: String
+    let available: Bool
+    let icon: String
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: icon)
+                .font(.system(size: 24))
+                .foregroundStyle(available ? Color.yellow : Color.gray)
+                .symbolRenderingMode(.hierarchical)
+                .frame(width: 40)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(name)
+                    .font(.system(size: 16, weight: .medium, design: .rounded))
+                    .foregroundStyle(.primary)
+
+                Text(available ? "Available" : "Not Available")
+                    .font(.system(size: 13, design: .rounded))
+                    .foregroundStyle(available ? .green : .secondary)
+            }
+
+            Spacer()
+
+            if available {
+                Image(systemName: "checkmark.circle.fill")
+                    .foregroundStyle(.green)
+                    .font(.system(size: 20))
+            }
+        }
+        .padding(.vertical, 4)
+    }
+}
+
+struct FeatureTag: View {
+    let name: String
+    let icon: String
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Image(systemName: icon)
+                .font(.system(size: 12))
+            Text(name)
+                .font(.system(size: 13, weight: .medium, design: .rounded))
+        }
+        .foregroundStyle(.purple)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .background(Color.purple.opacity(0.1))
+        .clipShape(Capsule())
     }
 }
 

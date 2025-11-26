@@ -345,8 +345,45 @@ struct DashboardView: View {
             .animation(.spring(response: 0.5, dampingFraction: 0.75, blendDuration: 0.3), value: settingsManager.settings.showDetailedDiskIO)
             }
             .background {
-                Color(.systemGroupedBackground)
+                ZStack {
+                    // Base gradient background
+                    LinearGradient(
+                        colors: [
+                            Color.blue.opacity(0.15),
+                            Color.purple.opacity(0.12),
+                            Color.pink.opacity(0.08),
+                            Color.orange.opacity(0.06)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
                     .ignoresSafeArea()
+
+                    // Animated gradient overlay
+                    RadialGradient(
+                        colors: [
+                            Color.cyan.opacity(0.1),
+                            Color.blue.opacity(0.05),
+                            .clear
+                        ],
+                        center: .topTrailing,
+                        startRadius: 0,
+                        endRadius: 500
+                    )
+                    .ignoresSafeArea()
+
+                    // Glass layer
+                    Color(.systemGroupedBackground)
+                        .opacity(0.7)
+                        .blur(radius: 0.5)
+                        .ignoresSafeArea()
+
+                    // Subtle noise texture effect
+                    Rectangle()
+                        .fill(.regularMaterial)
+                        .opacity(0.15)
+                        .ignoresSafeArea()
+                }
             }
             .refreshable {
                 await refreshMetrics()

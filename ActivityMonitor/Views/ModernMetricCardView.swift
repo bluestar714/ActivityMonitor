@@ -114,27 +114,97 @@ struct ModernMetricCardView<TrailingButton: View>: View {
         }
         .padding(18)
         .background {
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .fill(.ultraThinMaterial)
-                .shadow(color: color.opacity(isPressed ? 0.2 : 0.1), radius: isPressed ? 8 : 12, x: 0, y: isPressed ? 4 : 6)
+            liquidGlassBackground
         }
         .overlay {
+            glossyHighlight
+        }
+        .overlay {
+            liquidBorder
+        }
+        .scaleEffect(isPressed ? 0.97 : 1.0)
+        .animation(.smooth(duration: 0.4, extraBounce: 0.1), value: isPressed)
+    }
+
+    private var liquidGlassBackground: some View {
+        ZStack {
+            // Base glass layer with gradient
             RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .strokeBorder(
+                .fill(
                     .linearGradient(
                         colors: [
-                            color.opacity(0.4),
-                            color.opacity(0.1),
+                            color.opacity(0.08),
+                            color.opacity(0.03),
                             .clear
                         ],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
-                    ),
-                    lineWidth: 1.5
+                    )
                 )
+
+            // Glass material overlay
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .fill(.ultraThinMaterial)
+                .opacity(0.9)
+
+            // Inner glow effect
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .fill(
+                    .radialGradient(
+                        colors: [
+                            color.opacity(0.12),
+                            color.opacity(0.05),
+                            .clear
+                        ],
+                        center: .topLeading,
+                        startRadius: 0,
+                        endRadius: 200
+                    )
+                )
+                .blendMode(.plusLighter)
         }
-        .scaleEffect(isPressed ? 0.98 : 1.0)
-        .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isPressed)
+        .shadow(color: .black.opacity(0.08), radius: 8, x: 0, y: 4)
+        .shadow(color: color.opacity(isPressed ? 0.25 : 0.15), radius: isPressed ? 12 : 20, x: 0, y: isPressed ? 6 : 10)
+    }
+
+    private var glossyHighlight: some View {
+        RoundedRectangle(cornerRadius: 24, style: .continuous)
+            .fill(
+                .linearGradient(
+                    colors: [
+                        .white.opacity(0.3),
+                        .clear
+                    ],
+                    startPoint: .top,
+                    endPoint: .center
+                )
+            )
+            .frame(height: 1)
+            .offset(y: -23)
+            .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+    }
+
+    private var liquidBorder: some View {
+        RoundedRectangle(cornerRadius: 24, style: .continuous)
+            .strokeBorder(
+                .angularGradient(
+                    colors: [
+                        color.opacity(0.6),
+                        color.opacity(0.3),
+                        color.opacity(0.1),
+                        .white.opacity(0.2),
+                        color.opacity(0.1),
+                        color.opacity(0.3),
+                        color.opacity(0.6)
+                    ],
+                    center: .topLeading,
+                    startAngle: .degrees(0),
+                    endAngle: .degrees(360)
+                ),
+                lineWidth: 2
+            )
+            .blur(radius: 0.5)
+            .opacity(0.8)
     }
 }
 
@@ -275,27 +345,94 @@ struct DualMetricCardView: View {
         }
         .padding(18)
         .background {
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .fill(.ultraThinMaterial)
-                .shadow(color: color1.opacity(isPressed ? 0.2 : 0.1), radius: isPressed ? 8 : 12, x: 0, y: isPressed ? 4 : 6)
+            dualLiquidGlassBackground
         }
         .overlay {
+            dualGlossyHighlight
+        }
+        .overlay {
+            dualLiquidBorder
+        }
+        .scaleEffect(isPressed ? 0.97 : 1.0)
+        .animation(.smooth(duration: 0.4, extraBounce: 0.1), value: isPressed)
+    }
+
+    private var dualLiquidGlassBackground: some View {
+        ZStack {
             RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .strokeBorder(
+                .fill(
                     .linearGradient(
                         colors: [
-                            color1.opacity(0.4),
-                            color1.opacity(0.1),
+                            color1.opacity(0.08),
+                            color1.opacity(0.03),
                             .clear
                         ],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
-                    ),
-                    lineWidth: 1.5
+                    )
                 )
+
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .fill(.ultraThinMaterial)
+                .opacity(0.9)
+
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .fill(
+                    .radialGradient(
+                        colors: [
+                            color1.opacity(0.12),
+                            color1.opacity(0.05),
+                            .clear
+                        ],
+                        center: .topLeading,
+                        startRadius: 0,
+                        endRadius: 200
+                    )
+                )
+                .blendMode(.plusLighter)
         }
-        .scaleEffect(isPressed ? 0.98 : 1.0)
-        .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isPressed)
+        .shadow(color: .black.opacity(0.08), radius: 8, x: 0, y: 4)
+        .shadow(color: color1.opacity(isPressed ? 0.25 : 0.15), radius: isPressed ? 12 : 20, x: 0, y: isPressed ? 6 : 10)
+    }
+
+    private var dualGlossyHighlight: some View {
+        RoundedRectangle(cornerRadius: 24, style: .continuous)
+            .fill(
+                .linearGradient(
+                    colors: [
+                        .white.opacity(0.3),
+                        .clear
+                    ],
+                    startPoint: .top,
+                    endPoint: .center
+                )
+            )
+            .frame(height: 1)
+            .offset(y: -23)
+            .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+    }
+
+    private var dualLiquidBorder: some View {
+        RoundedRectangle(cornerRadius: 24, style: .continuous)
+            .strokeBorder(
+                .angularGradient(
+                    colors: [
+                        color1.opacity(0.6),
+                        color1.opacity(0.3),
+                        color1.opacity(0.1),
+                        .white.opacity(0.2),
+                        color1.opacity(0.1),
+                        color1.opacity(0.3),
+                        color1.opacity(0.6)
+                    ],
+                    center: .topLeading,
+                    startAngle: .degrees(0),
+                    endAngle: .degrees(360)
+                ),
+                lineWidth: 2
+            )
+            .blur(radius: 0.5)
+            .opacity(0.8)
     }
 }
 
@@ -349,10 +486,65 @@ struct CompactModernMetricCardView: View {
         }
         .padding(14)
         .background {
+            compactGlassBackground
+        }
+        .overlay {
+            compactBorder
+        }
+    }
+
+    private var compactGlassBackground: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(
+                    .linearGradient(
+                        colors: [
+                            color.opacity(0.06),
+                            color.opacity(0.02),
+                            .clear
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+
             RoundedRectangle(cornerRadius: 16, style: .continuous)
                 .fill(.regularMaterial)
-                .shadow(color: .black.opacity(0.05), radius: 6, x: 0, y: 3)
+                .opacity(0.85)
+
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(
+                    .radialGradient(
+                        colors: [
+                            color.opacity(0.08),
+                            .clear
+                        ],
+                        center: .topLeading,
+                        startRadius: 0,
+                        endRadius: 120
+                    )
+                )
+                .blendMode(.plusLighter)
         }
+        .shadow(color: .black.opacity(0.06), radius: 6, x: 0, y: 3)
+        .shadow(color: color.opacity(0.12), radius: 12, x: 0, y: 6)
+    }
+
+    private var compactBorder: some View {
+        RoundedRectangle(cornerRadius: 16, style: .continuous)
+            .strokeBorder(
+                .linearGradient(
+                    colors: [
+                        color.opacity(0.5),
+                        .white.opacity(0.15),
+                        .clear
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                ),
+                lineWidth: 1.5
+            )
+            .opacity(0.7)
     }
 }
 

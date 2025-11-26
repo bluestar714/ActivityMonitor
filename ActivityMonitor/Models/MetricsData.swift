@@ -346,6 +346,44 @@ struct DiskIOMetrics: Codable {
     )
 }
 
+// MARK: - GPU & Neural Engine Info
+
+struct GPUInfo: Codable {
+    let name: String
+    let family: String
+    let maxThreadsPerThreadgroup: Int
+    let recommendedMaxWorkingSetSize: UInt64
+    let currentAllocatedSize: UInt64
+    let hasUnifiedMemory: Bool
+    let supportsRaytracing: Bool
+    let supportsMeshShaders: Bool
+
+    // Neural Engine info (based on device model)
+    let neuralEngineGeneration: String?
+    let neuralEngineCores: Int?
+
+    var gpuMemoryGB: Double {
+        return Double(currentAllocatedSize) / 1_073_741_824.0
+    }
+
+    var maxWorkingSetGB: Double {
+        return Double(recommendedMaxWorkingSetSize) / 1_073_741_824.0
+    }
+
+    static let zero = GPUInfo(
+        name: "Unknown",
+        family: "Unknown",
+        maxThreadsPerThreadgroup: 0,
+        recommendedMaxWorkingSetSize: 0,
+        currentAllocatedSize: 0,
+        hasUnifiedMemory: false,
+        supportsRaytracing: false,
+        supportsMeshShaders: false,
+        neuralEngineGeneration: nil,
+        neuralEngineCores: nil
+    )
+}
+
 // MARK: - Metrics Snapshot
 
 struct MetricsSnapshot: Codable {

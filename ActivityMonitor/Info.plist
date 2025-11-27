@@ -66,6 +66,16 @@
     </array>
     <key>NSSupportsLiveActivities</key>
     <true/>
+    <key>NSFaceIDUsageDescription</key>
+    <string>Activity Monitor uses Face ID to test biometric authentication functionality.</string>
+    <key>NSMotionUsageDescription</key>
+    <string>Activity Monitor uses motion sensors to display real-time accelerometer, gyroscope, magnetometer, and barometer data.</string>
+    <key>NSLocationWhenInUseUsageDescription</key>
+    <string>Activity Monitor uses your location to display GPS coordinates, altitude, speed, and compass heading.</string>
+    <key>NSMicrophoneUsageDescription</key>
+    <string>Activity Monitor uses the microphone to display audio level meter and test microphone functionality.</string>
+    <key>NSCameraUsageDescription</key>
+    <string>Activity Monitor uses the camera to test camera sensors, display live preview, and demonstrate camera capabilities.</string>
     <key>NSPrivacyAccessedAPITypes</key>
     <array>
         <dict>

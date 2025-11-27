@@ -10,6 +10,9 @@ import CoreMotion
 import AVFoundation
 import LocalAuthentication
 import CoreLocation
+import ARKit
+import SceneKit
+import CoreNFC
 
 @available(iOS 17.0, *)
 struct SettingsView: View {
@@ -374,6 +377,19 @@ struct SettingsView: View {
                     } label: {
                         Text("Requires")
                             .font(.system(size: 16, weight: .medium, design: .rounded))
+                    }
+
+                    NavigationLink {
+                        OSSLicensesView()
+                    } label: {
+                        HStack {
+                            Text("Open Source Licenses")
+                                .font(.system(size: 16, weight: .medium, design: .rounded))
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundStyle(.secondary)
+                        }
                     }
                 } header: {
                     Text("About")
@@ -2099,16 +2115,55 @@ struct SensorsView: View {
     @State private var hasMagnetometer = false
     @State private var hasBarometer = false
 
+    // Detail view states
+    @State private var showingAccelerometer = false
+    @State private var showingGyroscope = false
+    @State private var showingMagnetometer = false
+    @State private var showingBarometer = false
+    @State private var showingProximity = false
+    @State private var showingLightSensor = false
+    @State private var showingBiometric = false
+    @State private var showingFlashlight = false
+    @State private var showingHaptics = false
+    @State private var showingPedometer = false
+    @State private var showingDeviceMotion = false
+    @State private var showingLocation = false
+    @State private var showingCompass = false
+    @State private var showingAudio = false
+    @State private var showingCamera = false
+    @State private var showingLiDAR = false
+
     var body: some View {
         List {
             // Available Sensors
             Section {
-                SensorRow(name: "Accelerometer", available: hasAccelerometer, icon: "Move.3d")
-                SensorRow(name: "Gyroscope", available: hasGyroscope, icon: "gyroscope")
-                SensorRow(name: "Magnetometer", available: hasMagnetometer, icon: "location.north.fill")
-                SensorRow(name: "Barometer", available: hasBarometer, icon: "barometer")
-                SensorRow(name: "Proximity Sensor", available: true, icon: "sensor")
-                SensorRow(name: "Ambient Light Sensor", available: true, icon: "light.max")
+                Button { showingAccelerometer = true } label: {
+                    SensorRow(name: "Accelerometer", available: hasAccelerometer, icon: "Move.3d")
+                }
+                .disabled(!hasAccelerometer)
+
+                Button { showingGyroscope = true } label: {
+                    SensorRow(name: "Gyroscope", available: hasGyroscope, icon: "gyroscope")
+                }
+                .disabled(!hasGyroscope)
+
+                Button { showingMagnetometer = true } label: {
+                    SensorRow(name: "Magnetometer", available: hasMagnetometer, icon: "location.north.fill")
+                }
+                .disabled(!hasMagnetometer)
+
+                Button { showingBarometer = true } label: {
+                    SensorRow(name: "Barometer", available: hasBarometer, icon: "barometer")
+                }
+                .disabled(!hasBarometer)
+
+                Button { showingProximity = true } label: {
+                    SensorRow(name: "Proximity Sensor", available: true, icon: "sensor")
+                }
+
+                Button { showingLightSensor = true } label: {
+                    SensorRow(name: "Ambient Light Sensor", available: true, icon: "light.max")
+                }
             } header: {
                 HStack {
                     Image(systemName: "sensor.fill")
@@ -2117,13 +2172,15 @@ struct SensorsView: View {
                 }
                 .font(.system(size: 13, weight: .semibold, design: .rounded))
             } footer: {
-                Text("These sensors provide motion, orientation, and environmental data to apps.")
+                Text("Tap each sensor to test and view live data.")
                     .font(.system(size: 12, design: .rounded))
             }
 
             // Biometric Authentication
             Section {
-                BiometricRow()
+                Button { showingBiometric = true } label: {
+                    BiometricRow()
+                }
             } header: {
                 HStack {
                     Image(systemName: "faceid")
@@ -2131,11 +2188,16 @@ struct SensorsView: View {
                     Text("Biometric Authentication")
                 }
                 .font(.system(size: 13, weight: .semibold, design: .rounded))
+            } footer: {
+                Text("Tap to test biometric authentication.")
+                    .font(.system(size: 12, design: .rounded))
             }
 
             // Camera Information
             Section {
-                CameraInfoRow()
+                Button { showingCamera = true } label: {
+                    CameraInfoRow()
+                }
             } header: {
                 HStack {
                     Image(systemName: "camera.fill")
@@ -2143,12 +2205,64 @@ struct SensorsView: View {
                     Text("Camera")
                 }
                 .font(.system(size: 13, weight: .semibold, design: .rounded))
+            } footer: {
+                Text("Tap to view live camera preview and test camera features.")
+                    .font(.system(size: 12, design: .rounded))
+            }
+
+            // LiDAR Scanner
+            Section {
+                Button { showingLiDAR = true } label: {
+                    HStack(spacing: 12) {
+                        Image(systemName: "light.beacon.max.fill")
+                            .font(.system(size: 24))
+                            .foregroundStyle(hasLiDARScanner() ? Color.purple : Color.gray)
+                            .symbolRenderingMode(.hierarchical)
+                            .frame(width: 40)
+
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("LiDAR Scanner")
+                                .font(.system(size: 16, weight: .medium, design: .rounded))
+                                .foregroundStyle(.primary)
+
+                            Text(hasLiDARScanner() ? "Available" : "Not Available")
+                                .font(.system(size: 13, design: .rounded))
+                                .foregroundStyle(hasLiDARScanner() ? .green : .secondary)
+                        }
+
+                        Spacer()
+
+                        if hasLiDARScanner() {
+                            Image(systemName: "checkmark.circle.fill")
+                                .foregroundStyle(.green)
+                                .font(.system(size: 20))
+                        }
+                    }
+                    .padding(.vertical, 4)
+                }
+                .disabled(!hasLiDARScanner())
+            } header: {
+                HStack {
+                    Image(systemName: "light.beacon.max.fill")
+                        .foregroundStyle(.purple.gradient)
+                    Text("Depth Sensing")
+                }
+                .font(.system(size: 13, weight: .semibold, design: .rounded))
+            } footer: {
+                Text("Tap to visualize depth map and measure distances with the LiDAR scanner.")
+                    .font(.system(size: 12, design: .rounded))
             }
 
             // Other Features
             Section {
-                FeatureRow(name: "Flashlight", available: hasFlashlight(), icon: "flashlight.on.fill")
-                FeatureRow(name: "Vibration (Haptics)", available: true, icon: "iphone.radiowaves.left.and.right")
+                Button { showingFlashlight = true } label: {
+                    FeatureRow(name: "Flashlight", available: hasFlashlight(), icon: "flashlight.on.fill")
+                }
+                .disabled(!hasFlashlight())
+
+                Button { showingHaptics = true } label: {
+                    FeatureRow(name: "Vibration (Haptics)", available: true, icon: "iphone.radiowaves.left.and.right")
+                }
             } header: {
                 HStack {
                     Image(systemName: "star.fill")
@@ -2156,11 +2270,216 @@ struct SensorsView: View {
                     Text("Other Features")
                 }
                 .font(.system(size: 13, weight: .semibold, design: .rounded))
+            } footer: {
+                Text("Tap to test flashlight and haptic feedback.")
+                    .font(.system(size: 12, design: .rounded))
+            }
+
+            // Motion & Activity
+            Section {
+                Button { showingPedometer = true } label: {
+                    FeatureRow(name: "Pedometer", available: CMPedometer.isStepCountingAvailable(), icon: "figure.walk")
+                }
+                .disabled(!CMPedometer.isStepCountingAvailable())
+
+                Button { showingDeviceMotion = true } label: {
+                    FeatureRow(name: "Device Motion", available: motionManager.isDeviceMotionAvailable, icon: "move.3d")
+                }
+                .disabled(!motionManager.isDeviceMotionAvailable)
+
+                FeatureRow(name: "Activity Recognition", available: CMMotionActivityManager.isActivityAvailable(), icon: "figure.run")
+                FeatureRow(name: "Motion Coprocessor", available: hasMotionCoprocessor(), icon: "cpu")
+            } header: {
+                HStack {
+                    Image(systemName: "figure.walk.motion")
+                        .foregroundStyle(.orange.gradient)
+                    Text("Motion & Activity")
+                }
+                .font(.system(size: 13, weight: .semibold, design: .rounded))
+            } footer: {
+                Text("Tap Pedometer or Device Motion to view live data.")
+                    .font(.system(size: 12, design: .rounded))
+            }
+
+            // Location Services
+            Section {
+                Button { showingLocation = true } label: {
+                    FeatureRow(name: "GPS", available: CLLocationManager.locationServicesEnabled(), icon: "location.fill")
+                }
+
+                Button { showingCompass = true } label: {
+                    FeatureRow(name: "Compass", available: CLLocationManager.headingAvailable(), icon: "location.north.line.fill")
+                }
+
+                FeatureRow(name: "iBeacon", available: CLLocationManager.isMonitoringAvailable(for: CLBeaconRegion.self), icon: "wave.3.right")
+                FeatureRow(name: "Region Monitoring", available: CLLocationManager.isMonitoringAvailable(for: CLCircularRegion.self), icon: "map")
+            } header: {
+                HStack {
+                    Image(systemName: "location.circle.fill")
+                        .foregroundStyle(.cyan.gradient)
+                    Text("Location Services")
+                }
+                .font(.system(size: 13, weight: .semibold, design: .rounded))
+            } footer: {
+                Text("Tap GPS or Compass to view location data.")
+                    .font(.system(size: 12, design: .rounded))
+            }
+
+            // AR Capabilities
+            Section {
+                ARCapabilitiesRow()
+            } header: {
+                HStack {
+                    Image(systemName: "arkit")
+                        .foregroundStyle(.purple.gradient)
+                    Text("AR Capabilities")
+                }
+                .font(.system(size: 13, weight: .semibold, design: .rounded))
+            } footer: {
+                Text("Augmented Reality features powered by ARKit and LiDAR scanner.")
+                    .font(.system(size: 12, design: .rounded))
+            }
+
+            // TrueDepth Camera
+            Section {
+                TrueDepthRow()
+            } header: {
+                HStack {
+                    Image(systemName: "faceid")
+                        .foregroundStyle(.green.gradient)
+                    Text("TrueDepth Camera")
+                }
+                .font(.system(size: 13, weight: .semibold, design: .rounded))
+            }
+
+            // Touch & Haptics
+            Section {
+                TouchHapticsRow()
+            } header: {
+                HStack {
+                    Image(systemName: "hand.tap.fill")
+                        .foregroundStyle(.pink.gradient)
+                    Text("Touch & Haptics")
+                }
+                .font(.system(size: 13, weight: .semibold, design: .rounded))
+            }
+
+            // Audio Sensors
+            Section {
+                Button { showingAudio = true } label: {
+                    AudioSensorsRow()
+                }
+            } header: {
+                HStack {
+                    Image(systemName: "mic.fill")
+                        .foregroundStyle(.red.gradient)
+                    Text("Audio Sensors")
+                }
+                .font(.system(size: 13, weight: .semibold, design: .rounded))
+            } footer: {
+                Text("Tap to view microphone level meter.")
+                    .font(.system(size: 12, design: .rounded))
+            }
+
+            // Connectivity
+            Section {
+                ConnectivityRow()
+            } header: {
+                HStack {
+                    Image(systemName: "antenna.radiowaves.left.and.right")
+                        .foregroundStyle(.indigo.gradient)
+                    Text("Connectivity")
+                }
+                .font(.system(size: 13, weight: .semibold, design: .rounded))
+            }
+
+            // Battery Features
+            Section {
+                BatteryFeaturesRow()
+            } header: {
+                HStack {
+                    Image(systemName: "battery.100.bolt")
+                        .foregroundStyle(.green.gradient)
+                    Text("Battery Features")
+                }
+                .font(.system(size: 13, weight: .semibold, design: .rounded))
+            }
+
+            // Always-On Features
+            Section {
+                AlwaysOnFeaturesRow()
+            } header: {
+                HStack {
+                    Image(systemName: "clock.badge.checkmark.fill")
+                        .foregroundStyle(.teal.gradient)
+                    Text("Always-On Features")
+                }
+                .font(.system(size: 13, weight: .semibold, design: .rounded))
             }
         }
         .onAppear {
             checkSensorAvailability()
         }
+        .sheet(isPresented: $showingAccelerometer) {
+            AccelerometerDetailView()
+        }
+        .sheet(isPresented: $showingGyroscope) {
+            GyroscopeDetailView()
+        }
+        .sheet(isPresented: $showingMagnetometer) {
+            MagnetometerDetailView()
+        }
+        .sheet(isPresented: $showingBarometer) {
+            BarometerDetailView()
+        }
+        .sheet(isPresented: $showingProximity) {
+            ProximitySensorDetailView()
+        }
+        .sheet(isPresented: $showingLightSensor) {
+            LightSensorDetailView()
+        }
+        .sheet(isPresented: $showingBiometric) {
+            BiometricTestView()
+        }
+        .sheet(isPresented: $showingFlashlight) {
+            FlashlightTestView()
+        }
+        .sheet(isPresented: $showingHaptics) {
+            HapticsTestView()
+        }
+        .sheet(isPresented: $showingPedometer) {
+            PedometerDetailView()
+        }
+        .sheet(isPresented: $showingDeviceMotion) {
+            DeviceMotionDetailView()
+        }
+        .sheet(isPresented: $showingLocation) {
+            GPSLocationDetailView()
+        }
+        .sheet(isPresented: $showingCompass) {
+            CompassDetailView()
+        }
+        .sheet(isPresented: $showingAudio) {
+            AudioMeterDetailView()
+        }
+        .sheet(isPresented: $showingCamera) {
+            CameraTestView()
+        }
+        .sheet(isPresented: $showingLiDAR) {
+            LiDARDepthView()
+        }
+    }
+
+    private func hasLiDARScanner() -> Bool {
+        if #available(iOS 14.0, *) {
+            let discoverySession = AVCaptureDevice.DiscoverySession(
+                deviceTypes: [.builtInLiDARDepthCamera],
+                mediaType: .video,
+                position: .back
+            )
+            return !discoverySession.devices.isEmpty
+        }
+        return false
     }
 
     private func checkSensorAvailability() {
@@ -2173,6 +2492,10 @@ struct SensorsView: View {
     private func hasFlashlight() -> Bool {
         guard let device = AVCaptureDevice.default(for: .video) else { return false }
         return device.hasTorch
+    }
+
+    private func hasMotionCoprocessor() -> Bool {
+        return CMPedometer.isStepCountingAvailable() || CMMotionActivityManager.isActivityAvailable()
     }
 }
 
@@ -2402,6 +2725,2477 @@ struct FeatureTag: View {
         .padding(.vertical, 6)
         .background(Color.purple.opacity(0.1))
         .clipShape(Capsule())
+    }
+}
+
+struct ARCapabilitiesRow: View {
+    @State private var supportsARKit = false
+    @State private var supportsWorldTracking = false
+    @State private var supportsFaceTracking = false
+    @State private var supportsImageTracking = false
+    @State private var supportsObjectScanning = false
+    @State private var hasLiDARForAR = false
+    @State private var supportsPeopleOcclusion = false
+    @State private var supportsSceneGeometry = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            if #available(iOS 13.0, *) {
+                if supportsARKit {
+                    VStack(alignment: .leading, spacing: 8) {
+                        if supportsWorldTracking {
+                            FeatureTag(name: "World Tracking", icon: "cube.transparent")
+                        }
+                        if supportsFaceTracking {
+                            FeatureTag(name: "Face Tracking", icon: "face.smiling")
+                        }
+                        if supportsImageTracking {
+                            FeatureTag(name: "Image Tracking", icon: "photo")
+                        }
+                        if supportsObjectScanning {
+                            FeatureTag(name: "Object Scanning", icon: "cube.box")
+                        }
+                        if hasLiDARForAR {
+                            FeatureTag(name: "LiDAR Scanner", icon: "light.beacon.max.fill")
+                        }
+                        if supportsPeopleOcclusion {
+                            FeatureTag(name: "People Occlusion", icon: "figure.stand")
+                        }
+                        if supportsSceneGeometry {
+                            FeatureTag(name: "Scene Geometry", icon: "square.grid.3x3.square")
+                        }
+                    }
+                } else {
+                    Text("ARKit not supported on this device")
+                        .font(.system(size: 14, design: .rounded))
+                        .foregroundStyle(.secondary)
+                }
+            }
+        }
+        .onAppear {
+            detectARCapabilities()
+        }
+    }
+
+    private func detectARCapabilities() {
+        if #available(iOS 13.0, *) {
+            let configuration = ARWorldTrackingConfiguration()
+            supportsARKit = ARWorldTrackingConfiguration.isSupported
+            supportsWorldTracking = ARWorldTrackingConfiguration.isSupported
+            supportsFaceTracking = ARFaceTrackingConfiguration.isSupported
+            supportsImageTracking = ARImageTrackingConfiguration.isSupported
+            supportsObjectScanning = ARObjectScanningConfiguration.isSupported
+
+            if #available(iOS 13.4, *) {
+                hasLiDARForAR = ARWorldTrackingConfiguration.supportsSceneReconstruction(.mesh)
+            }
+
+            if #available(iOS 13.0, *) {
+                supportsPeopleOcclusion = ARWorldTrackingConfiguration.supportsFrameSemantics(.personSegmentationWithDepth)
+            }
+
+            if #available(iOS 13.4, *) {
+                supportsSceneGeometry = ARWorldTrackingConfiguration.supportsSceneReconstruction(.meshWithClassification)
+            }
+        }
+    }
+}
+
+struct TrueDepthRow: View {
+    @State private var hasTrueDepth = false
+    @State private var supportsDepthCapture = false
+    @State private var supportsAnimoji = false
+    @State private var supportsPortraitLighting = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            if hasTrueDepth {
+                VStack(alignment: .leading, spacing: 8) {
+                    FeatureTag(name: "TrueDepth Camera", icon: "camera.metering.multispot")
+                    if supportsDepthCapture {
+                        FeatureTag(name: "Depth Capture", icon: "camera.aperture")
+                    }
+                    if supportsAnimoji {
+                        FeatureTag(name: "Animoji / Memoji", icon: "face.smiling")
+                    }
+                    if supportsPortraitLighting {
+                        FeatureTag(name: "Portrait Lighting", icon: "light.max")
+                    }
+                }
+            } else {
+                Text("TrueDepth camera not available")
+                    .font(.system(size: 14, design: .rounded))
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .onAppear {
+            detectTrueDepthCapabilities()
+        }
+    }
+
+    private func detectTrueDepthCapabilities() {
+        // Check for front-facing camera with depth capability
+        if let device = AVCaptureDevice.default(.builtInTrueDepthCamera, for: .video, position: .front) {
+            hasTrueDepth = true
+            supportsDepthCapture = device.activeFormat.isPortraitEffectsMatteStillImageDeliverySupported
+            supportsAnimoji = ARFaceTrackingConfiguration.isSupported
+            supportsPortraitLighting = device.activeFormat.supportedDepthDataFormats.count > 0
+        }
+    }
+}
+
+struct TouchHapticsRow: View {
+    @State private var has3DTouch = false
+    @State private var hasHapticTouch = true // All modern devices
+    @State private var tapticEngineGeneration = "Taptic Engine"
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: 8) {
+                if has3DTouch {
+                    FeatureTag(name: "3D Touch", icon: "hand.point.up.left.fill")
+                } else {
+                    FeatureTag(name: "Haptic Touch", icon: "hand.tap.fill")
+                }
+                FeatureTag(name: tapticEngineGeneration, icon: "iphone.radiowaves.left.and.right")
+            }
+        }
+        .onAppear {
+            detectTouchHapticsCapabilities()
+        }
+    }
+
+    private func detectTouchHapticsCapabilities() {
+        // 3D Touch was available on iPhone 6s through iPhone XS
+        let deviceModel = getDeviceModel()
+        if deviceModel.contains("iPhone8,") || deviceModel.contains("iPhone9,") || deviceModel.contains("iPhone10,3") || deviceModel.contains("iPhone10,6") {
+            has3DTouch = true
+        }
+
+        // Determine Taptic Engine generation
+        if deviceModel.contains("iPhone16") || deviceModel.contains("iPhone15") || deviceModel.contains("iPhone14") {
+            tapticEngineGeneration = "Taptic Engine (3rd Gen)"
+        } else if deviceModel.contains("iPhone13") || deviceModel.contains("iPhone12") || deviceModel.contains("iPhone11") {
+            tapticEngineGeneration = "Taptic Engine (2nd Gen)"
+        } else {
+            tapticEngineGeneration = "Taptic Engine"
+        }
+    }
+
+    private func getDeviceModel() -> String {
+        var systemInfo = utsname()
+        uname(&systemInfo)
+        let modelCode = withUnsafePointer(to: &systemInfo.machine) {
+            $0.withMemoryRebound(to: CChar.self, capacity: 1) {
+                String(validatingUTF8: $0) ?? ""
+            }
+        }
+        return modelCode
+    }
+}
+
+struct AudioSensorsRow: View {
+    @State private var microphoneCount = 0
+    @State private var hasSpatialAudioRecording = false
+    @State private var hasNoiseCancellation = true // Most modern devices
+    @State private var hasAudioZoom = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: 8) {
+                FeatureTag(name: "\(microphoneCount) Microphone\(microphoneCount != 1 ? "s" : "")", icon: "mic.fill")
+                if hasSpatialAudioRecording {
+                    FeatureTag(name: "Spatial Audio Recording", icon: "mic.badge.plus")
+                }
+                if hasNoiseCancellation {
+                    FeatureTag(name: "Noise Cancellation", icon: "waveform.badge.minus")
+                }
+                if hasAudioZoom {
+                    FeatureTag(name: "Audio Zoom", icon: "waveform.badge.magnifyingglass")
+                }
+            }
+        }
+        .onAppear {
+            detectAudioCapabilities()
+        }
+    }
+
+    private func detectAudioCapabilities() {
+        // Count microphones
+        let audioSession = AVAudioSession.sharedInstance()
+        let inputs = audioSession.currentRoute.inputs
+        microphoneCount = inputs.filter { $0.portType == .builtInMic }.first?.channels?.count ?? 3
+
+        // Spatial audio recording typically on Pro models
+        let deviceModel = getDeviceModel()
+        if deviceModel.contains("iPhone15,2") || deviceModel.contains("iPhone15,3") ||
+           deviceModel.contains("iPhone16,1") || deviceModel.contains("iPhone16,2") {
+            hasSpatialAudioRecording = true
+        }
+
+        // Audio zoom available on devices with multiple mics
+        hasAudioZoom = microphoneCount >= 2
+    }
+
+    private func getDeviceModel() -> String {
+        var systemInfo = utsname()
+        uname(&systemInfo)
+        let modelCode = withUnsafePointer(to: &systemInfo.machine) {
+            $0.withMemoryRebound(to: CChar.self, capacity: 1) {
+                String(validatingUTF8: $0) ?? ""
+            }
+        }
+        return modelCode
+    }
+}
+
+struct ConnectivityRow: View {
+    @State private var hasNFC = false
+    @State private var hasUWB = false
+    @State private var bluetoothVersion = "5.0"
+    @State private var wifiVersion = "Wi-Fi 6"
+    @State private var has5G = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: 8) {
+                if hasNFC {
+                    FeatureTag(name: "NFC", icon: "wave.3.right")
+                }
+                if hasUWB {
+                    FeatureTag(name: "Ultra Wideband (U1/U2)", icon: "point.3.connected.trianglepath.dotted")
+                }
+                FeatureTag(name: "Bluetooth \(bluetoothVersion)", icon: "bluetooth")
+                FeatureTag(name: wifiVersion, icon: "wifi")
+                if has5G {
+                    FeatureTag(name: "5G", icon: "antenna.radiowaves.left.and.right")
+                }
+            }
+        }
+        .onAppear {
+            detectConnectivityCapabilities()
+        }
+    }
+
+    private func detectConnectivityCapabilities() {
+        let deviceModel = getDeviceModel()
+
+        // NFC available on iPhone 7 and later
+        if !deviceModel.contains("iPhone8,") && !deviceModel.contains("iPhone7,") && !deviceModel.contains("iPhone6,") {
+            hasNFC = NFCReaderSession.readingAvailable
+        }
+
+        // UWB (U1 chip) available on iPhone 11 and later
+        if deviceModel.contains("iPhone12") || deviceModel.contains("iPhone13") ||
+           deviceModel.contains("iPhone14") || deviceModel.contains("iPhone15") || deviceModel.contains("iPhone16") {
+            hasUWB = true
+        }
+
+        // Determine Bluetooth version
+        if deviceModel.contains("iPhone16") || deviceModel.contains("iPhone15") {
+            bluetoothVersion = "5.3"
+        } else if deviceModel.contains("iPhone14") || deviceModel.contains("iPhone13") {
+            bluetoothVersion = "5.0"
+        } else {
+            bluetoothVersion = "5.0"
+        }
+
+        // Determine WiFi version
+        if deviceModel.contains("iPhone16") {
+            wifiVersion = "Wi-Fi 7"
+        } else if deviceModel.contains("iPhone15") || deviceModel.contains("iPhone14") || deviceModel.contains("iPhone13") {
+            wifiVersion = "Wi-Fi 6E"
+        } else {
+            wifiVersion = "Wi-Fi 6"
+        }
+
+        // 5G available on iPhone 12 and later
+        if deviceModel.contains("iPhone13") || deviceModel.contains("iPhone14") ||
+           deviceModel.contains("iPhone15") || deviceModel.contains("iPhone16") || deviceModel.contains("iPhone12") {
+            has5G = true
+        }
+    }
+
+    private func getDeviceModel() -> String {
+        var systemInfo = utsname()
+        uname(&systemInfo)
+        let modelCode = withUnsafePointer(to: &systemInfo.machine) {
+            $0.withMemoryRebound(to: CChar.self, capacity: 1) {
+                String(validatingUTF8: $0) ?? ""
+            }
+        }
+        return modelCode
+    }
+}
+
+struct BatteryFeaturesRow: View {
+    @State private var supportsWirelessCharging = false
+    @State private var supportsMagSafe = false
+    @State private var supportsFastCharging = true
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: 8) {
+                if supportsWirelessCharging {
+                    FeatureTag(name: "Wireless Charging (Qi)", icon: "battery.100.bolt")
+                }
+                if supportsMagSafe {
+                    FeatureTag(name: "MagSafe", icon: "circle.grid.cross.fill")
+                }
+                if supportsFastCharging {
+                    FeatureTag(name: "Fast Charging", icon: "bolt.fill")
+                }
+            }
+        }
+        .onAppear {
+            detectBatteryFeatures()
+        }
+    }
+
+    private func detectBatteryFeatures() {
+        let deviceModel = getDeviceModel()
+
+        // Wireless charging available on iPhone 8 and later
+        if !deviceModel.contains("iPhone8,") && !deviceModel.contains("iPhone7,") && !deviceModel.contains("iPhone6,") {
+            supportsWirelessCharging = true
+        }
+
+        // MagSafe available on iPhone 12 and later
+        if deviceModel.contains("iPhone13") || deviceModel.contains("iPhone14") ||
+           deviceModel.contains("iPhone15") || deviceModel.contains("iPhone16") || deviceModel.contains("iPhone12") {
+            supportsMagSafe = true
+        }
+
+        // Fast charging available on iPhone 8 and later
+        supportsFastCharging = true
+    }
+
+    private func getDeviceModel() -> String {
+        var systemInfo = utsname()
+        uname(&systemInfo)
+        let modelCode = withUnsafePointer(to: &systemInfo.machine) {
+            $0.withMemoryRebound(to: CChar.self, capacity: 1) {
+                String(validatingUTF8: $0) ?? ""
+            }
+        }
+        return modelCode
+    }
+}
+
+struct AlwaysOnFeaturesRow: View {
+    @State private var supportsAlwaysOnDisplay = false
+    @State private var hasAlwaysOnProcessor = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            if supportsAlwaysOnDisplay || hasAlwaysOnProcessor {
+                VStack(alignment: .leading, spacing: 8) {
+                    if supportsAlwaysOnDisplay {
+                        FeatureTag(name: "Always-On Display", icon: "clock.badge.checkmark")
+                    }
+                    if hasAlwaysOnProcessor {
+                        FeatureTag(name: "Always-On Processor", icon: "cpu")
+                    }
+                }
+            } else {
+                Text("Always-On features not available")
+                    .font(.system(size: 14, design: .rounded))
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .onAppear {
+            detectAlwaysOnFeatures()
+        }
+    }
+
+    private func detectAlwaysOnFeatures() {
+        let deviceModel = getDeviceModel()
+
+        // Always-On Display available on iPhone 14 Pro and later Pro models
+        if deviceModel.contains("iPhone15,2") || deviceModel.contains("iPhone15,3") ||
+           deviceModel.contains("iPhone16,1") || deviceModel.contains("iPhone16,2") {
+            supportsAlwaysOnDisplay = true
+            hasAlwaysOnProcessor = true
+        }
+    }
+
+    private func getDeviceModel() -> String {
+        var systemInfo = utsname()
+        uname(&systemInfo)
+        let modelCode = withUnsafePointer(to: &systemInfo.machine) {
+            $0.withMemoryRebound(to: CChar.self, capacity: 1) {
+                String(validatingUTF8: $0) ?? ""
+            }
+        }
+        return modelCode
+    }
+}
+
+// MARK: - Sensor Detail Views
+
+struct AccelerometerDetailView: View {
+    @Environment(\.dismiss) private var dismiss
+    @State private var motionManager: CMMotionManager?
+    @State private var x: Double = 0
+    @State private var y: Double = 0
+    @State private var z: Double = 0
+
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: 24) {
+                Image(systemName: "move.3d")
+                    .font(.system(size: 80))
+                    .foregroundStyle(.blue.gradient)
+                    .symbolRenderingMode(.hierarchical)
+
+                Text("Accelerometer")
+                    .font(.system(size: 28, weight: .bold, design: .rounded))
+
+                VStack(spacing: 16) {
+                    SensorDataRow(label: "X-Axis", value: x, color: .red)
+                    SensorDataRow(label: "Y-Axis", value: y, color: .green)
+                    SensorDataRow(label: "Z-Axis", value: z, color: .blue)
+                }
+                .padding()
+                .background(.ultraThinMaterial)
+                .clipShape(RoundedRectangle(cornerRadius: 20))
+
+                Text("Tilt and move your device to see real-time acceleration data.")
+                    .font(.system(size: 14, design: .rounded))
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal)
+
+                Spacer()
+            }
+            .padding()
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Done") { dismiss() }
+                }
+            }
+            .onAppear {
+                startAccelerometer()
+            }
+            .onDisappear {
+                stopAccelerometer()
+            }
+        }
+    }
+
+    private func startAccelerometer() {
+        let manager = CMMotionManager()
+        motionManager = manager
+        if manager.isAccelerometerAvailable {
+            manager.accelerometerUpdateInterval = 0.1
+            manager.startAccelerometerUpdates(to: .main) { [self] data, error in
+                guard let data = data else { return }
+                x = data.acceleration.x
+                y = data.acceleration.y
+                z = data.acceleration.z
+            }
+        }
+    }
+
+    private func stopAccelerometer() {
+        motionManager?.stopAccelerometerUpdates()
+        motionManager = nil
+    }
+}
+
+struct GyroscopeDetailView: View {
+    @Environment(\.dismiss) private var dismiss
+    @State private var motionManager: CMMotionManager?
+    @State private var x: Double = 0
+    @State private var y: Double = 0
+    @State private var z: Double = 0
+
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: 24) {
+                Image(systemName: "gyroscope")
+                    .font(.system(size: 80))
+                    .foregroundStyle(.purple.gradient)
+                    .symbolRenderingMode(.hierarchical)
+
+                Text("Gyroscope")
+                    .font(.system(size: 28, weight: .bold, design: .rounded))
+
+                VStack(spacing: 16) {
+                    SensorDataRow(label: "X-Rotation", value: x, color: .red, unit: "rad/s")
+                    SensorDataRow(label: "Y-Rotation", value: y, color: .green, unit: "rad/s")
+                    SensorDataRow(label: "Z-Rotation", value: z, color: .blue, unit: "rad/s")
+                }
+                .padding()
+                .background(.ultraThinMaterial)
+                .clipShape(RoundedRectangle(cornerRadius: 20))
+
+                Text("Rotate your device to see real-time gyroscope data.")
+                    .font(.system(size: 14, design: .rounded))
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal)
+
+                Spacer()
+            }
+            .padding()
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Done") { dismiss() }
+                }
+            }
+            .onAppear {
+                startGyroscope()
+            }
+            .onDisappear {
+                stopGyroscope()
+            }
+        }
+    }
+
+    private func startGyroscope() {
+        let manager = CMMotionManager()
+        motionManager = manager
+        if manager.isGyroAvailable {
+            manager.gyroUpdateInterval = 0.1
+            manager.startGyroUpdates(to: .main) { [self] data, error in
+                guard let data = data else { return }
+                x = data.rotationRate.x
+                y = data.rotationRate.y
+                z = data.rotationRate.z
+            }
+        }
+    }
+
+    private func stopGyroscope() {
+        motionManager?.stopGyroUpdates()
+        motionManager = nil
+    }
+}
+
+struct MagnetometerDetailView: View {
+    @Environment(\.dismiss) private var dismiss
+    @State private var motionManager: CMMotionManager?
+    @State private var x: Double = 0
+    @State private var y: Double = 0
+    @State private var z: Double = 0
+    @State private var heading: Double = 0
+
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: 24) {
+                Image(systemName: "location.north.fill")
+                    .font(.system(size: 80))
+                    .foregroundStyle(.green.gradient)
+                    .symbolRenderingMode(.hierarchical)
+                    .rotationEffect(.degrees(heading))
+
+                Text("Magnetometer")
+                    .font(.system(size: 28, weight: .bold, design: .rounded))
+
+                VStack(spacing: 16) {
+                    SensorDataRow(label: "X-Field", value: x, color: .red, unit: "μT")
+                    SensorDataRow(label: "Y-Field", value: y, color: .green, unit: "μT")
+                    SensorDataRow(label: "Z-Field", value: z, color: .blue, unit: "μT")
+                }
+                .padding()
+                .background(.ultraThinMaterial)
+                .clipShape(RoundedRectangle(cornerRadius: 20))
+
+                Text("Move your device to see magnetic field strength.")
+                    .font(.system(size: 14, design: .rounded))
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal)
+
+                Spacer()
+            }
+            .padding()
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Done") { dismiss() }
+                }
+            }
+            .onAppear {
+                startMagnetometer()
+            }
+            .onDisappear {
+                stopMagnetometer()
+            }
+        }
+    }
+
+    private func startMagnetometer() {
+        let manager = CMMotionManager()
+        motionManager = manager
+        if manager.isMagnetometerAvailable {
+            manager.magnetometerUpdateInterval = 0.1
+            manager.startMagnetometerUpdates(to: .main) { [self] data, error in
+                guard let data = data else { return }
+                x = data.magneticField.x
+                y = data.magneticField.y
+                z = data.magneticField.z
+                heading = atan2(y, x) * 180 / .pi
+            }
+        }
+    }
+
+    private func stopMagnetometer() {
+        motionManager?.stopMagnetometerUpdates()
+        motionManager = nil
+    }
+}
+
+struct BarometerDetailView: View {
+    @Environment(\.dismiss) private var dismiss
+    @State private var altimeter: CMAltimeter?
+    @State private var pressure: Double = 0
+    @State private var altitude: Double = 0
+
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: 24) {
+                Image(systemName: "barometer")
+                    .font(.system(size: 80))
+                    .foregroundStyle(.orange.gradient)
+                    .symbolRenderingMode(.hierarchical)
+
+                Text("Barometer")
+                    .font(.system(size: 28, weight: .bold, design: .rounded))
+
+                VStack(spacing: 16) {
+                    VStack(spacing: 8) {
+                        Text("Pressure")
+                            .font(.system(size: 14, weight: .semibold, design: .rounded))
+                            .foregroundStyle(.secondary)
+                        Text(String(format: "%.2f kPa", pressure))
+                            .font(.system(size: 36, weight: .bold, design: .rounded))
+                            .foregroundStyle(.orange)
+                    }
+
+                    Divider()
+
+                    VStack(spacing: 8) {
+                        Text("Relative Altitude")
+                            .font(.system(size: 14, weight: .semibold, design: .rounded))
+                            .foregroundStyle(.secondary)
+                        Text(String(format: "%.2f m", altitude))
+                            .font(.system(size: 36, weight: .bold, design: .rounded))
+                            .foregroundStyle(.blue)
+                    }
+                }
+                .padding()
+                .background(.ultraThinMaterial)
+                .clipShape(RoundedRectangle(cornerRadius: 20))
+
+                Text("Move up or down stairs/elevators to see altitude changes.")
+                    .font(.system(size: 14, design: .rounded))
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal)
+
+                Spacer()
+            }
+            .padding()
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Done") { dismiss() }
+                }
+            }
+            .onAppear {
+                startBarometer()
+            }
+            .onDisappear {
+                stopBarometer()
+            }
+        }
+    }
+
+    private func startBarometer() {
+        if CMAltimeter.isRelativeAltitudeAvailable() {
+            let newAltimeter = CMAltimeter()
+            altimeter = newAltimeter
+            newAltimeter.startRelativeAltitudeUpdates(to: .main) { [self] data, error in
+                guard let data = data else { return }
+                pressure = data.pressure.doubleValue
+                altitude = data.relativeAltitude.doubleValue
+            }
+        }
+    }
+
+    private func stopBarometer() {
+        altimeter?.stopRelativeAltitudeUpdates()
+        altimeter = nil
+    }
+}
+
+struct ProximitySensorDetailView: View {
+    @Environment(\.dismiss) private var dismiss
+    @State private var isNear = false
+
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: 24) {
+                Image(systemName: isNear ? "sensor.fill" : "sensor")
+                    .font(.system(size: 80))
+                    .foregroundStyle(isNear ? Color.red.gradient : Color.gray.gradient)
+                    .symbolRenderingMode(.hierarchical)
+
+                Text("Proximity Sensor")
+                    .font(.system(size: 28, weight: .bold, design: .rounded))
+
+                VStack(spacing: 16) {
+                    Text(isNear ? "Object Detected" : "No Object")
+                        .font(.system(size: 24, weight: .bold, design: .rounded))
+                        .foregroundStyle(isNear ? .red : .gray)
+
+                    Text(isNear ? "Something is close to the sensor" : "Nothing is near the sensor")
+                        .font(.system(size: 16, design: .rounded))
+                        .foregroundStyle(.secondary)
+                }
+                .padding()
+                .background(.ultraThinMaterial)
+                .clipShape(RoundedRectangle(cornerRadius: 20))
+
+                Text("Cover the top of your device near the front camera to activate the proximity sensor.")
+                    .font(.system(size: 14, design: .rounded))
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal)
+
+                Spacer()
+            }
+            .padding()
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Done") { dismiss() }
+                }
+            }
+            .onAppear {
+                UIDevice.current.isProximityMonitoringEnabled = true
+                NotificationCenter.default.addObserver(forName: UIDevice.proximityStateDidChangeNotification, object: nil, queue: .main) { _ in
+                    isNear = UIDevice.current.proximityState
+                }
+            }
+            .onDisappear {
+                UIDevice.current.isProximityMonitoringEnabled = false
+            }
+        }
+    }
+}
+
+struct LightSensorDetailView: View {
+    @Environment(\.dismiss) private var dismiss
+    @State private var brightness: CGFloat = UIScreen.main.brightness
+
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: 24) {
+                Image(systemName: "light.max")
+                    .font(.system(size: 80))
+                    .foregroundStyle(.yellow.gradient)
+                    .symbolRenderingMode(.hierarchical)
+                    .opacity(Double(brightness))
+
+                Text("Ambient Light Sensor")
+                    .font(.system(size: 28, weight: .bold, design: .rounded))
+
+                VStack(spacing: 16) {
+                    Text("Screen Brightness")
+                        .font(.system(size: 14, weight: .semibold, design: .rounded))
+                        .foregroundStyle(.secondary)
+
+                    Text("\(Int(brightness * 100))%")
+                        .font(.system(size: 48, weight: .bold, design: .rounded))
+                        .foregroundStyle(.yellow)
+
+                    ProgressView(value: brightness, total: 1.0)
+                        .tint(.yellow)
+                }
+                .padding()
+                .background(.ultraThinMaterial)
+                .clipShape(RoundedRectangle(cornerRadius: 20))
+
+                Text("The ambient light sensor adjusts your screen brightness automatically. Current screen brightness is shown above.")
+                    .font(.system(size: 14, design: .rounded))
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal)
+
+                Spacer()
+            }
+            .padding()
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Done") { dismiss() }
+                }
+            }
+            .onAppear {
+                startMonitoring()
+            }
+        }
+    }
+
+    private func startMonitoring() {
+        Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { _ in
+            brightness = UIScreen.main.brightness
+        }
+    }
+}
+
+struct BiometricTestView: View {
+    @Environment(\.dismiss) private var dismiss
+    @State private var authenticationStatus = "Not tested"
+    @State private var statusColor: Color = .gray
+    @State private var isAuthenticating = false
+
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: 24) {
+                Image(systemName: "faceid")
+                    .font(.system(size: 80))
+                    .foregroundStyle(statusColor.gradient)
+                    .symbolRenderingMode(.hierarchical)
+
+                Text("Biometric Test")
+                    .font(.system(size: 28, weight: .bold, design: .rounded))
+
+                VStack(spacing: 16) {
+                    Text(authenticationStatus)
+                        .font(.system(size: 18, weight: .semibold, design: .rounded))
+                        .foregroundStyle(statusColor)
+                }
+                .padding()
+                .background(.ultraThinMaterial)
+                .clipShape(RoundedRectangle(cornerRadius: 20))
+
+                Button {
+                    authenticateUser()
+                } label: {
+                    Label("Test Authentication", systemImage: "checkmark.shield.fill")
+                        .font(.system(size: 18, weight: .semibold, design: .rounded))
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(.blue.gradient)
+                        .foregroundStyle(.white)
+                        .clipShape(RoundedRectangle(cornerRadius: 16))
+                }
+                .disabled(isAuthenticating)
+
+                Spacer()
+            }
+            .padding()
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Done") { dismiss() }
+                }
+            }
+        }
+    }
+
+    private func authenticateUser() {
+        isAuthenticating = true
+        authenticationStatus = "Authenticating..."
+        statusColor = .blue
+
+        let context = LAContext()
+        var error: NSError?
+
+        if context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &error) {
+            let reason = "Test biometric authentication"
+
+            context.evaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, localizedReason: reason) { success, error in
+                DispatchQueue.main.async {
+                    isAuthenticating = false
+                    if success {
+                        authenticationStatus = "Authentication Successful"
+                        statusColor = .green
+                    } else {
+                        authenticationStatus = "Authentication Failed"
+                        statusColor = .red
+                    }
+                }
+            }
+        } else {
+            isAuthenticating = false
+            authenticationStatus = "Biometric authentication not available"
+            statusColor = .orange
+        }
+    }
+}
+
+struct FlashlightTestView: View {
+    @Environment(\.dismiss) private var dismiss
+    @State private var isFlashlightOn = false
+
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: 24) {
+                Image(systemName: isFlashlightOn ? "flashlight.on.fill" : "flashlight.off.fill")
+                    .font(.system(size: 80))
+                    .foregroundStyle(isFlashlightOn ? Color.yellow.gradient : Color.gray.gradient)
+                    .symbolRenderingMode(.hierarchical)
+
+                Text("Flashlight Test")
+                    .font(.system(size: 28, weight: .bold, design: .rounded))
+
+                VStack(spacing: 16) {
+                    Text(isFlashlightOn ? "Flashlight is ON" : "Flashlight is OFF")
+                        .font(.system(size: 18, weight: .semibold, design: .rounded))
+                        .foregroundStyle(isFlashlightOn ? .yellow : .gray)
+                }
+                .padding()
+                .background(.ultraThinMaterial)
+                .clipShape(RoundedRectangle(cornerRadius: 20))
+
+                Button {
+                    toggleFlashlight()
+                } label: {
+                    Label(isFlashlightOn ? "Turn Off" : "Turn On", systemImage: isFlashlightOn ? "flashlight.off.fill" : "flashlight.on.fill")
+                        .font(.system(size: 18, weight: .semibold, design: .rounded))
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(isFlashlightOn ? Color.red.gradient : Color.yellow.gradient)
+                        .foregroundStyle(.white)
+                        .clipShape(RoundedRectangle(cornerRadius: 16))
+                }
+
+                Spacer()
+            }
+            .padding()
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Done") {
+                        if isFlashlightOn {
+                            toggleFlashlight()
+                        }
+                        dismiss()
+                    }
+                }
+            }
+        }
+    }
+
+    private func toggleFlashlight() {
+        guard let device = AVCaptureDevice.default(for: .video), device.hasTorch else { return }
+
+        do {
+            try device.lockForConfiguration()
+            if isFlashlightOn {
+                device.torchMode = .off
+            } else {
+                try device.setTorchModeOn(level: 1.0)
+            }
+            device.unlockForConfiguration()
+            isFlashlightOn.toggle()
+        } catch {
+            print("Flashlight error: \(error)")
+        }
+    }
+}
+
+struct HapticsTestView: View {
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: 24) {
+                Image(systemName: "iphone.radiowaves.left.and.right")
+                    .font(.system(size: 80))
+                    .foregroundStyle(.pink.gradient)
+                    .symbolRenderingMode(.hierarchical)
+
+                Text("Haptic Feedback Test")
+                    .font(.system(size: 28, weight: .bold, design: .rounded))
+
+                Text("Tap the buttons to feel different haptic feedbacks")
+                    .font(.system(size: 14, design: .rounded))
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal)
+
+                VStack(spacing: 12) {
+                    HapticButton(title: "Light Impact", style: .light)
+                    HapticButton(title: "Medium Impact", style: .medium)
+                    HapticButton(title: "Heavy Impact", style: .heavy)
+                    HapticButton(title: "Soft Impact", style: .soft)
+                    HapticButton(title: "Rigid Impact", style: .rigid)
+                }
+
+                Divider()
+
+                VStack(spacing: 12) {
+                    NotificationHapticButton(title: "Success", type: .success)
+                    NotificationHapticButton(title: "Warning", type: .warning)
+                    NotificationHapticButton(title: "Error", type: .error)
+                }
+
+                Spacer()
+            }
+            .padding()
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Done") { dismiss() }
+                }
+            }
+        }
+    }
+}
+
+struct HapticButton: View {
+    let title: String
+    let style: UIImpactFeedbackGenerator.FeedbackStyle
+
+    var body: some View {
+        Button {
+            let generator = UIImpactFeedbackGenerator(style: style)
+            generator.impactOccurred()
+        } label: {
+            Text(title)
+                .font(.system(size: 16, weight: .semibold, design: .rounded))
+                .frame(maxWidth: .infinity)
+                .padding()
+                .background(.ultraThinMaterial)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+        }
+    }
+}
+
+struct NotificationHapticButton: View {
+    let title: String
+    let type: UINotificationFeedbackGenerator.FeedbackType
+
+    var body: some View {
+        Button {
+            let generator = UINotificationFeedbackGenerator()
+            generator.notificationOccurred(type)
+        } label: {
+            Text(title)
+                .font(.system(size: 16, weight: .semibold, design: .rounded))
+                .frame(maxWidth: .infinity)
+                .padding()
+                .background(.ultraThinMaterial)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+        }
+    }
+}
+
+struct PedometerDetailView: View {
+    @Environment(\.dismiss) private var dismiss
+    @State private var pedometer: CMPedometer?
+    @State private var stepCount: Int = 0
+    @State private var distance: Double = 0
+    @State private var floorsAscended: Int = 0
+    @State private var floorsDescended: Int = 0
+
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: 24) {
+                Image(systemName: "figure.walk")
+                    .font(.system(size: 80))
+                    .foregroundStyle(.orange.gradient)
+                    .symbolRenderingMode(.hierarchical)
+
+                Text("Pedometer")
+                    .font(.system(size: 28, weight: .bold, design: .rounded))
+
+                VStack(spacing: 20) {
+                    VStack(spacing: 8) {
+                        Text("Steps")
+                            .font(.system(size: 14, weight: .semibold, design: .rounded))
+                            .foregroundStyle(.secondary)
+                        Text("\(stepCount)")
+                            .font(.system(size: 48, weight: .bold, design: .rounded))
+                            .foregroundStyle(.orange)
+                    }
+
+                    HStack(spacing: 30) {
+                        VStack(spacing: 8) {
+                            Text("Distance")
+                                .font(.system(size: 14, weight: .semibold, design: .rounded))
+                                .foregroundStyle(.secondary)
+                            Text(String(format: "%.0f m", distance))
+                                .font(.system(size: 20, weight: .bold, design: .rounded))
+                                .foregroundStyle(.blue)
+                        }
+
+                        Divider().frame(height: 40)
+
+                        VStack(spacing: 8) {
+                            Text("Floors ↑")
+                                .font(.system(size: 14, weight: .semibold, design: .rounded))
+                                .foregroundStyle(.secondary)
+                            Text("\(floorsAscended)")
+                                .font(.system(size: 20, weight: .bold, design: .rounded))
+                                .foregroundStyle(.green)
+                        }
+
+                        Divider().frame(height: 40)
+
+                        VStack(spacing: 8) {
+                            Text("Floors ↓")
+                                .font(.system(size: 14, weight: .semibold, design: .rounded))
+                                .foregroundStyle(.secondary)
+                            Text("\(floorsDescended)")
+                                .font(.system(size: 20, weight: .bold, design: .rounded))
+                                .foregroundStyle(.red)
+                        }
+                    }
+                }
+                .padding()
+                .background(.ultraThinMaterial)
+                .clipShape(RoundedRectangle(cornerRadius: 20))
+
+                Text("Walk around to track your steps and movement.")
+                    .font(.system(size: 14, design: .rounded))
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal)
+
+                Spacer()
+            }
+            .padding()
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Done") { dismiss() }
+                }
+            }
+            .onAppear {
+                startPedometer()
+            }
+            .onDisappear {
+                stopPedometer()
+            }
+        }
+    }
+
+    private func startPedometer() {
+        if CMPedometer.isStepCountingAvailable() {
+            let newPedometer = CMPedometer()
+            pedometer = newPedometer
+            newPedometer.startUpdates(from: Date()) { [self] data, error in
+                guard let data = data else { return }
+                stepCount = data.numberOfSteps.intValue
+                distance = data.distance?.doubleValue ?? 0
+                floorsAscended = data.floorsAscended?.intValue ?? 0
+                floorsDescended = data.floorsDescended?.intValue ?? 0
+            }
+        }
+    }
+
+    private func stopPedometer() {
+        pedometer?.stopUpdates()
+        pedometer = nil
+    }
+}
+
+struct DeviceMotionDetailView: View {
+    @Environment(\.dismiss) private var dismiss
+    @State private var motionManager: CMMotionManager?
+    @State private var pitch: Double = 0
+    @State private var roll: Double = 0
+    @State private var yaw: Double = 0
+    @State private var gravityX: Double = 0
+    @State private var gravityY: Double = 0
+    @State private var gravityZ: Double = 0
+
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: 24) {
+                Image(systemName: "move.3d")
+                    .font(.system(size: 80))
+                    .foregroundStyle(.purple.gradient)
+                    .symbolRenderingMode(.hierarchical)
+                    .rotation3DEffect(.degrees(pitch * 30), axis: (x: 1, y: 0, z: 0))
+                    .rotation3DEffect(.degrees(roll * 30), axis: (x: 0, y: 0, z: 1))
+
+                Text("Device Motion")
+                    .font(.system(size: 28, weight: .bold, design: .rounded))
+
+                VStack(spacing: 16) {
+                    Text("Attitude")
+                        .font(.system(size: 16, weight: .semibold, design: .rounded))
+                        .foregroundStyle(.secondary)
+
+                    SensorDataRow(label: "Pitch", value: pitch, color: .red, unit: "rad")
+                    SensorDataRow(label: "Roll", value: roll, color: .green, unit: "rad")
+                    SensorDataRow(label: "Yaw", value: yaw, color: .blue, unit: "rad")
+
+                    Divider()
+
+                    Text("Gravity")
+                        .font(.system(size: 16, weight: .semibold, design: .rounded))
+                        .foregroundStyle(.secondary)
+
+                    SensorDataRow(label: "X-Gravity", value: gravityX, color: .red, unit: "g")
+                    SensorDataRow(label: "Y-Gravity", value: gravityY, color: .green, unit: "g")
+                    SensorDataRow(label: "Z-Gravity", value: gravityZ, color: .blue, unit: "g")
+                }
+                .padding()
+                .background(.ultraThinMaterial)
+                .clipShape(RoundedRectangle(cornerRadius: 20))
+
+                Text("Tilt and rotate your device to see attitude and gravity data.")
+                    .font(.system(size: 14, design: .rounded))
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal)
+
+                Spacer()
+            }
+            .padding()
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Done") { dismiss() }
+                }
+            }
+            .onAppear {
+                startDeviceMotion()
+            }
+            .onDisappear {
+                stopDeviceMotion()
+            }
+        }
+    }
+
+    private func startDeviceMotion() {
+        let manager = CMMotionManager()
+        motionManager = manager
+        if manager.isDeviceMotionAvailable {
+            manager.deviceMotionUpdateInterval = 0.1
+            manager.startDeviceMotionUpdates(to: .main) { [self] data, error in
+                guard let data = data else { return }
+                pitch = data.attitude.pitch
+                roll = data.attitude.roll
+                yaw = data.attitude.yaw
+                gravityX = data.gravity.x
+                gravityY = data.gravity.y
+                gravityZ = data.gravity.z
+            }
+        }
+    }
+
+    private func stopDeviceMotion() {
+        motionManager?.stopDeviceMotionUpdates()
+        motionManager = nil
+    }
+}
+
+struct GPSLocationDetailView: View {
+    @Environment(\.dismiss) private var dismiss
+    @StateObject private var locationManager = LocationManagerHelper()
+
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: 24) {
+                Image(systemName: "location.fill")
+                    .font(.system(size: 80))
+                    .foregroundStyle(.cyan.gradient)
+                    .symbolRenderingMode(.hierarchical)
+
+                Text("GPS Location")
+                    .font(.system(size: 28, weight: .bold, design: .rounded))
+
+                if let location = locationManager.location {
+                    VStack(spacing: 16) {
+                        VStack(spacing: 8) {
+                            Text("Coordinates")
+                                .font(.system(size: 14, weight: .semibold, design: .rounded))
+                                .foregroundStyle(.secondary)
+                            Text(String(format: "%.6f°, %.6f°", location.coordinate.latitude, location.coordinate.longitude))
+                                .font(.system(size: 18, weight: .bold, design: .monospaced))
+                                .foregroundStyle(.cyan)
+                        }
+
+                        Divider()
+
+                        HStack(spacing: 30) {
+                            VStack(spacing: 8) {
+                                Text("Altitude")
+                                    .font(.system(size: 14, weight: .semibold, design: .rounded))
+                                    .foregroundStyle(.secondary)
+                                Text(String(format: "%.1f m", location.altitude))
+                                    .font(.system(size: 18, weight: .bold, design: .rounded))
+                                    .foregroundStyle(.blue)
+                            }
+
+                            Divider().frame(height: 40)
+
+                            VStack(spacing: 8) {
+                                Text("Speed")
+                                    .font(.system(size: 14, weight: .semibold, design: .rounded))
+                                    .foregroundStyle(.secondary)
+                                Text(String(format: "%.1f m/s", max(0, location.speed)))
+                                    .font(.system(size: 18, weight: .bold, design: .rounded))
+                                    .foregroundStyle(.green)
+                            }
+                        }
+
+                        Divider()
+
+                        VStack(spacing: 8) {
+                            Text("Accuracy")
+                                .font(.system(size: 14, weight: .semibold, design: .rounded))
+                                .foregroundStyle(.secondary)
+                            Text(String(format: "±%.0f m", location.horizontalAccuracy))
+                                .font(.system(size: 16, weight: .bold, design: .rounded))
+                                .foregroundStyle(.orange)
+                        }
+                    }
+                    .padding()
+                    .background(.ultraThinMaterial)
+                    .clipShape(RoundedRectangle(cornerRadius: 20))
+                } else {
+                    VStack(spacing: 16) {
+                        ProgressView()
+                        Text(locationManager.authorizationStatus)
+                            .font(.system(size: 16, design: .rounded))
+                            .foregroundStyle(.secondary)
+                    }
+                    .padding()
+                    .background(.ultraThinMaterial)
+                    .clipShape(RoundedRectangle(cornerRadius: 20))
+                }
+
+                Text("Location data updates in real-time as you move.")
+                    .font(.system(size: 14, design: .rounded))
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal)
+
+                Spacer()
+            }
+            .padding()
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Done") { dismiss() }
+                }
+            }
+            .onAppear {
+                locationManager.startUpdating()
+            }
+            .onDisappear {
+                locationManager.stopUpdating()
+            }
+        }
+    }
+}
+
+class LocationManagerHelper: NSObject, ObservableObject, CLLocationManagerDelegate {
+    private let manager = CLLocationManager()
+    @Published var location: CLLocation?
+    @Published var authorizationStatus = "Requesting permission..."
+
+    override init() {
+        super.init()
+        manager.delegate = self
+        manager.desiredAccuracy = kCLLocationAccuracyBest
+    }
+
+    func startUpdating() {
+        manager.requestWhenInUseAuthorization()
+        manager.startUpdatingLocation()
+    }
+
+    func stopUpdating() {
+        manager.stopUpdatingLocation()
+    }
+
+    func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+        location = locations.last
+    }
+
+    func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
+        switch manager.authorizationStatus {
+        case .authorizedWhenInUse, .authorizedAlways:
+            authorizationStatus = "Location authorized"
+        case .denied:
+            authorizationStatus = "Location access denied"
+        case .restricted:
+            authorizationStatus = "Location access restricted"
+        case .notDetermined:
+            authorizationStatus = "Waiting for permission..."
+        @unknown default:
+            authorizationStatus = "Unknown status"
+        }
+    }
+}
+
+struct CompassDetailView: View {
+    @Environment(\.dismiss) private var dismiss
+    @StateObject private var compassManager = CompassManagerHelper()
+
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: 24) {
+                ZStack {
+                    Circle()
+                        .stroke(lineWidth: 4)
+                        .foregroundStyle(.cyan.opacity(0.3))
+                        .frame(width: 200, height: 200)
+
+                    Image(systemName: "location.north.fill")
+                        .font(.system(size: 80))
+                        .foregroundStyle(.cyan.gradient)
+                        .symbolRenderingMode(.hierarchical)
+                        .rotationEffect(.degrees(-compassManager.heading))
+
+                    VStack {
+                        Text("N")
+                            .font(.system(size: 20, weight: .bold, design: .rounded))
+                            .foregroundStyle(.red)
+                            .offset(y: -110)
+                    }
+                    .rotationEffect(.degrees(-compassManager.heading))
+                }
+                .padding()
+
+                Text("Compass")
+                    .font(.system(size: 28, weight: .bold, design: .rounded))
+
+                VStack(spacing: 16) {
+                    VStack(spacing: 8) {
+                        Text("Heading")
+                            .font(.system(size: 14, weight: .semibold, design: .rounded))
+                            .foregroundStyle(.secondary)
+                        Text(String(format: "%.1f°", compassManager.heading))
+                            .font(.system(size: 48, weight: .bold, design: .rounded))
+                            .foregroundStyle(.cyan)
+                    }
+
+                    Text(compassManager.direction)
+                        .font(.system(size: 20, weight: .semibold, design: .rounded))
+                        .foregroundStyle(.secondary)
+
+                    if compassManager.accuracy > 0 {
+                        Text(String(format: "Accuracy: ±%.0f°", compassManager.accuracy))
+                            .font(.system(size: 14, design: .rounded))
+                            .foregroundStyle(.orange)
+                    }
+                }
+                .padding()
+                .background(.ultraThinMaterial)
+                .clipShape(RoundedRectangle(cornerRadius: 20))
+
+                Text("Rotate your device to see the compass heading change.")
+                    .font(.system(size: 14, design: .rounded))
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal)
+
+                Spacer()
+            }
+            .padding()
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Done") { dismiss() }
+                }
+            }
+            .onAppear {
+                compassManager.startUpdating()
+            }
+            .onDisappear {
+                compassManager.stopUpdating()
+            }
+        }
+    }
+}
+
+class CompassManagerHelper: NSObject, ObservableObject, CLLocationManagerDelegate {
+    private let manager = CLLocationManager()
+    @Published var heading: Double = 0
+    @Published var accuracy: Double = 0
+    @Published var direction: String = "—"
+
+    override init() {
+        super.init()
+        manager.delegate = self
+        manager.headingFilter = 1
+    }
+
+    func startUpdating() {
+        manager.requestWhenInUseAuthorization()
+        manager.startUpdatingHeading()
+    }
+
+    func stopUpdating() {
+        manager.stopUpdatingHeading()
+    }
+
+    func locationManager(_ manager: CLLocationManager, didUpdateHeading newHeading: CLHeading) {
+        heading = newHeading.magneticHeading
+        accuracy = newHeading.headingAccuracy
+        direction = getDirection(from: heading)
+    }
+
+    private func getDirection(from degrees: Double) -> String {
+        let directions = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"]
+        let index = Int((degrees + 22.5) / 45.0) % 8
+        return directions[index]
+    }
+}
+
+struct AudioMeterDetailView: View {
+    @Environment(\.dismiss) private var dismiss
+    @StateObject private var audioManager = AudioManagerHelper()
+
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: 24) {
+                Image(systemName: "waveform")
+                    .font(.system(size: 80))
+                    .foregroundStyle(.red.gradient)
+                    .symbolRenderingMode(.hierarchical)
+
+                Text("Audio Level Meter")
+                    .font(.system(size: 28, weight: .bold, design: .rounded))
+
+                VStack(spacing: 20) {
+                    VStack(spacing: 8) {
+                        Text("Input Level")
+                            .font(.system(size: 14, weight: .semibold, design: .rounded))
+                            .foregroundStyle(.secondary)
+
+                        GeometryReader { geometry in
+                            ZStack(alignment: .leading) {
+                                Capsule()
+                                    .fill(.gray.opacity(0.2))
+
+                                Capsule()
+                                    .fill(
+                                        LinearGradient(
+                                            colors: [.green, .yellow, .orange, .red],
+                                            startPoint: .leading,
+                                            endPoint: .trailing
+                                        )
+                                    )
+                                    .frame(width: geometry.size.width * CGFloat(audioManager.level))
+                            }
+                        }
+                        .frame(height: 40)
+
+                        Text(String(format: "%.0f dB", audioManager.decibels))
+                            .font(.system(size: 36, weight: .bold, design: .rounded))
+                            .foregroundStyle(.red)
+                    }
+
+                    if audioManager.isRecording {
+                        HStack(spacing: 8) {
+                            Circle()
+                                .fill(.red)
+                                .frame(width: 12, height: 12)
+                            Text("Monitoring")
+                                .font(.system(size: 14, weight: .semibold, design: .rounded))
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                }
+                .padding()
+                .background(.ultraThinMaterial)
+                .clipShape(RoundedRectangle(cornerRadius: 20))
+
+                Text("Speak or make sounds to see the audio level meter respond.")
+                    .font(.system(size: 14, design: .rounded))
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal)
+
+                Spacer()
+            }
+            .padding()
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Done") { dismiss() }
+                }
+            }
+            .onAppear {
+                audioManager.startMonitoring()
+            }
+            .onDisappear {
+                audioManager.stopMonitoring()
+            }
+        }
+    }
+}
+
+class AudioManagerHelper: NSObject, ObservableObject {
+    @Published var level: Double = 0
+    @Published var decibels: Double = -160
+    @Published var isRecording = false
+
+    private var audioRecorder: AVAudioRecorder?
+    private var timer: Timer?
+
+    func startMonitoring() {
+        let audioSession = AVAudioSession.sharedInstance()
+
+        do {
+            try audioSession.setCategory(.record, mode: .measurement)
+            try audioSession.setActive(true)
+
+            let url = URL(fileURLWithPath: "/dev/null")
+            let settings: [String: Any] = [
+                AVFormatIDKey: Int(kAudioFormatAppleLossless),
+                AVSampleRateKey: 44100.0,
+                AVNumberOfChannelsKey: 1,
+                AVEncoderAudioQualityKey: AVAudioQuality.max.rawValue
+            ]
+
+            audioRecorder = try AVAudioRecorder(url: url, settings: settings)
+            audioRecorder?.isMeteringEnabled = true
+            audioRecorder?.record()
+            isRecording = true
+
+            timer = Timer.scheduledTimer(withTimeInterval: 0.05, repeats: true) { [weak self] _ in
+                self?.updateMeters()
+            }
+        } catch {
+            print("Audio error: \(error)")
+        }
+    }
+
+    func stopMonitoring() {
+        timer?.invalidate()
+        timer = nil
+        audioRecorder?.stop()
+        audioRecorder = nil
+        isRecording = false
+
+        try? AVAudioSession.sharedInstance().setActive(false)
+    }
+
+    private func updateMeters() {
+        audioRecorder?.updateMeters()
+        if let recorder = audioRecorder {
+            let db = recorder.averagePower(forChannel: 0)
+            decibels = Double(db)
+            // Normalize to 0-1 range (assuming -160 to 0 dB range)
+            level = max(0, min(1, (Double(db) + 160) / 160))
+        }
+    }
+}
+
+struct CameraTestView: View {
+    @Environment(\.dismiss) private var dismiss
+    @StateObject private var cameraManager = CameraManagerHelper()
+
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                // Camera Preview
+                CameraPreviewView(session: cameraManager.session)
+                    .ignoresSafeArea()
+
+                // Overlay Controls
+                VStack {
+                    // Top Bar - Camera Info
+                    HStack {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(cameraManager.currentCameraName)
+                                .font(.system(size: 16, weight: .semibold, design: .rounded))
+                                .foregroundStyle(.white)
+                                .shadow(radius: 2)
+
+                            if let resolution = cameraManager.resolution {
+                                Text(resolution)
+                                    .font(.system(size: 12, design: .rounded))
+                                    .foregroundStyle(.white.opacity(0.8))
+                                    .shadow(radius: 2)
+                            }
+                        }
+                        .padding()
+                        .background(.ultraThinMaterial)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+
+                        Spacer()
+
+                        // Flash Toggle
+                        if cameraManager.hasFlash {
+                            Button {
+                                cameraManager.toggleFlash()
+                            } label: {
+                                Image(systemName: cameraManager.isFlashOn ? "bolt.fill" : "bolt.slash.fill")
+                                    .font(.system(size: 20))
+                                    .foregroundStyle(cameraManager.isFlashOn ? .yellow : .white)
+                                    .frame(width: 44, height: 44)
+                                    .background(.ultraThinMaterial)
+                                    .clipShape(Circle())
+                            }
+                        }
+                    }
+                    .padding()
+
+                    Spacer()
+
+                    // Bottom Controls
+                    VStack(spacing: 16) {
+                        // Zoom Level
+                        if cameraManager.maxZoom > 1 {
+                            VStack(spacing: 8) {
+                                Text(String(format: "%.1fx", cameraManager.currentZoom))
+                                    .font(.system(size: 14, weight: .semibold, design: .rounded))
+                                    .foregroundStyle(.white)
+
+                                HStack(spacing: 12) {
+                                    Button {
+                                        cameraManager.setZoom(1.0)
+                                    } label: {
+                                        Text("1x")
+                                            .font(.system(size: 14, weight: .semibold, design: .rounded))
+                                            .foregroundStyle(cameraManager.currentZoom == 1.0 ? .black : .white)
+                                            .padding(.horizontal, 12)
+                                            .padding(.vertical, 6)
+                                            .background(cameraManager.currentZoom == 1.0 ? .white : .clear)
+                                            .clipShape(Capsule())
+                                            .overlay(Capsule().stroke(.white, lineWidth: 1))
+                                    }
+
+                                    if cameraManager.maxZoom >= 2 {
+                                        Button {
+                                            cameraManager.setZoom(2.0)
+                                        } label: {
+                                            Text("2x")
+                                                .font(.system(size: 14, weight: .semibold, design: .rounded))
+                                                .foregroundStyle(cameraManager.currentZoom == 2.0 ? .black : .white)
+                                                .padding(.horizontal, 12)
+                                                .padding(.vertical, 6)
+                                                .background(cameraManager.currentZoom == 2.0 ? .white : .clear)
+                                                .clipShape(Capsule())
+                                                .overlay(Capsule().stroke(.white, lineWidth: 1))
+                                        }
+                                    }
+
+                                    if cameraManager.maxZoom >= 5 {
+                                        Button {
+                                            cameraManager.setZoom(5.0)
+                                        } label: {
+                                            Text("5x")
+                                                .font(.system(size: 14, weight: .semibold, design: .rounded))
+                                                .foregroundStyle(cameraManager.currentZoom == 5.0 ? .black : .white)
+                                                .padding(.horizontal, 12)
+                                                .padding(.vertical, 6)
+                                                .background(cameraManager.currentZoom == 5.0 ? .white : .clear)
+                                                .clipShape(Capsule())
+                                                .overlay(Capsule().stroke(.white, lineWidth: 1))
+                                        }
+                                    }
+                                }
+                            }
+                            .padding()
+                            .background(.ultraThinMaterial)
+                            .clipShape(RoundedRectangle(cornerRadius: 16))
+                        }
+
+                        // Camera Capabilities
+                        HStack(spacing: 12) {
+                            if cameraManager.hasUltraWide {
+                                CameraCapabilityBadge(name: "Ultra Wide", icon: "camera.metering.matrix", color: .cyan)
+                            }
+                            if cameraManager.hasTelephoto {
+                                CameraCapabilityBadge(name: "Telephoto", icon: "camera.metering.center.weighted", color: .orange)
+                            }
+                            if cameraManager.hasLiDAR {
+                                CameraCapabilityBadge(name: "LiDAR", icon: "light.beacon.max.fill", color: .purple)
+                            }
+                        }
+
+                        // Switch Camera Button
+                        HStack(spacing: 20) {
+                            Button {
+                                cameraManager.switchCamera()
+                            } label: {
+                                Label("Switch", systemImage: "arrow.triangle.2.circlepath.camera.fill")
+                                    .font(.system(size: 16, weight: .semibold, design: .rounded))
+                                    .foregroundStyle(.white)
+                                    .frame(maxWidth: .infinity)
+                                    .padding()
+                                    .background(.ultraThinMaterial)
+                                    .clipShape(RoundedRectangle(cornerRadius: 16))
+                            }
+                        }
+                    }
+                    .padding()
+                }
+            }
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Done") {
+                        cameraManager.stopSession()
+                        dismiss()
+                    }
+                    .foregroundStyle(.white)
+                    .padding(8)
+                    .background(.ultraThinMaterial)
+                    .clipShape(Capsule())
+                }
+            }
+            .toolbarBackground(.hidden, for: .navigationBar)
+            .onAppear {
+                cameraManager.startSession()
+            }
+            .onDisappear {
+                cameraManager.stopSession()
+            }
+        }
+    }
+}
+
+struct CameraCapabilityBadge: View {
+    let name: String
+    let icon: String
+    let color: Color
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Image(systemName: icon)
+                .font(.system(size: 12))
+            Text(name)
+                .font(.system(size: 12, weight: .semibold, design: .rounded))
+        }
+        .foregroundStyle(.white)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .background(color.opacity(0.8))
+        .clipShape(Capsule())
+    }
+}
+
+struct CameraPreviewView: UIViewRepresentable {
+    let session: AVCaptureSession
+
+    func makeUIView(context: Context) -> UIView {
+        let view = UIView(frame: .zero)
+        view.backgroundColor = .black
+
+        let previewLayer = AVCaptureVideoPreviewLayer(session: session)
+        previewLayer.videoGravity = .resizeAspectFill
+        view.layer.addSublayer(previewLayer)
+
+        context.coordinator.previewLayer = previewLayer
+
+        return view
+    }
+
+    func updateUIView(_ uiView: UIView, context: Context) {
+        if let previewLayer = context.coordinator.previewLayer {
+            DispatchQueue.main.async {
+                previewLayer.frame = uiView.bounds
+            }
+        }
+    }
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator()
+    }
+
+    class Coordinator {
+        var previewLayer: AVCaptureVideoPreviewLayer?
+    }
+}
+
+class CameraManagerHelper: NSObject, ObservableObject {
+    let session = AVCaptureSession()
+    @Published var currentCameraName = "Camera"
+    @Published var resolution: String?
+    @Published var hasFlash = false
+    @Published var isFlashOn = false
+    @Published var currentZoom: CGFloat = 1.0
+    @Published var maxZoom: CGFloat = 1.0
+    @Published var hasUltraWide = false
+    @Published var hasTelephoto = false
+    @Published var hasLiDAR = false
+
+    private var currentCamera: AVCaptureDevice?
+    private var currentInput: AVCaptureDeviceInput?
+    private var isUsingFrontCamera = false
+
+    override init() {
+        super.init()
+        detectCameraCapabilities()
+    }
+
+    func startSession() {
+        guard !session.isRunning else { return }
+
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            self?.setupCamera()
+            self?.session.startRunning()
+        }
+    }
+
+    func stopSession() {
+        guard session.isRunning else { return }
+        session.stopRunning()
+    }
+
+    private func setupCamera() {
+        session.beginConfiguration()
+
+        // Remove existing inputs
+        session.inputs.forEach { session.removeInput($0) }
+
+        // Get camera
+        let camera = isUsingFrontCamera ?
+            AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .front) :
+            AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back)
+
+        guard let device = camera,
+              let input = try? AVCaptureDeviceInput(device: device) else {
+            session.commitConfiguration()
+            return
+        }
+
+        if session.canAddInput(input) {
+            session.addInput(input)
+            currentInput = input
+            currentCamera = device
+
+            DispatchQueue.main.async {
+                self.updateCameraInfo(device)
+            }
+        }
+
+        session.commitConfiguration()
+    }
+
+    private func updateCameraInfo(_ device: AVCaptureDevice) {
+        currentCameraName = isUsingFrontCamera ? "Front Camera" : "Back Camera"
+
+        let format = device.activeFormat
+        let dimensions = CMVideoFormatDescriptionGetDimensions(format.formatDescription)
+        resolution = "\(dimensions.width) × \(dimensions.height)"
+
+        hasFlash = device.hasTorch
+        maxZoom = min(device.activeFormat.videoMaxZoomFactor, 10.0)
+        currentZoom = device.videoZoomFactor
+    }
+
+    private func detectCameraCapabilities() {
+        let discoverySession = AVCaptureDevice.DiscoverySession(
+            deviceTypes: [.builtInWideAngleCamera, .builtInUltraWideCamera, .builtInTelephotoCamera, .builtInLiDARDepthCamera],
+            mediaType: .video,
+            position: .back
+        )
+
+        hasUltraWide = discoverySession.devices.contains { $0.deviceType == .builtInUltraWideCamera }
+        hasTelephoto = discoverySession.devices.contains { $0.deviceType == .builtInTelephotoCamera }
+        hasLiDAR = discoverySession.devices.contains { $0.deviceType == .builtInLiDARDepthCamera }
+    }
+
+    func switchCamera() {
+        isUsingFrontCamera.toggle()
+        setupCamera()
+    }
+
+    func toggleFlash() {
+        guard let device = currentCamera, device.hasTorch else { return }
+
+        do {
+            try device.lockForConfiguration()
+            if isFlashOn {
+                device.torchMode = .off
+            } else {
+                try device.setTorchModeOn(level: 1.0)
+            }
+            device.unlockForConfiguration()
+            isFlashOn.toggle()
+        } catch {
+            print("Flash error: \(error)")
+        }
+    }
+
+    func setZoom(_ zoom: CGFloat) {
+        guard let device = currentCamera else { return }
+
+        do {
+            try device.lockForConfiguration()
+            device.videoZoomFactor = min(max(zoom, 1.0), maxZoom)
+            currentZoom = device.videoZoomFactor
+            device.unlockForConfiguration()
+        } catch {
+            print("Zoom error: \(error)")
+        }
+    }
+}
+
+struct SensorDataRow: View {
+    let label: String
+    let value: Double
+    let color: Color
+    var unit: String = "g"
+
+    var body: some View {
+        HStack {
+            Text(label)
+                .font(.system(size: 16, weight: .semibold, design: .rounded))
+                .foregroundStyle(.secondary)
+
+            Spacer()
+
+            Text(String(format: "%.3f", value))
+                .font(.system(size: 20, weight: .bold, design: .monospaced))
+                .foregroundStyle(color)
+
+            Text(unit)
+                .font(.system(size: 14, design: .rounded))
+                .foregroundStyle(.secondary)
+        }
+    }
+}
+
+// MARK: - LiDAR Depth View
+
+struct LiDARDepthView: View {
+    @Environment(\.dismiss) private var dismiss
+    @StateObject private var lidarManager = LiDARManagerHelper()
+    @State private var selectedPoint: CGPoint?
+    @State private var selectedDistance: Float?
+
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                // AR View with Depth Visualization
+                LiDARARView(manager: lidarManager, selectedPoint: $selectedPoint, selectedDistance: $selectedDistance)
+                    .ignoresSafeArea()
+
+                // Overlay UI
+                VStack {
+                    // Top Info Bar
+                    HStack {
+                        VStack(alignment: .leading, spacing: 8) {
+                            HStack(spacing: 8) {
+                                Image(systemName: "light.beacon.max.fill")
+                                    .font(.system(size: 20))
+                                    .foregroundStyle(.purple)
+                                Text("LiDAR Depth Sensing")
+                                    .font(.system(size: 16, weight: .semibold, design: .rounded))
+                            }
+
+                            if let distance = selectedDistance {
+                                HStack(spacing: 8) {
+                                    Image(systemName: "ruler")
+                                        .font(.system(size: 14))
+                                    Text(String(format: "Distance: %.2f m", distance))
+                                        .font(.system(size: 14, weight: .medium, design: .rounded))
+                                }
+                                .foregroundStyle(.white)
+                            } else {
+                                Text("Tap to measure distance")
+                                    .font(.system(size: 14, design: .rounded))
+                                    .foregroundStyle(.white.opacity(0.7))
+                            }
+                        }
+                        .foregroundStyle(.white)
+                        .padding()
+                        .background(.ultraThinMaterial)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+
+                        Spacer()
+                    }
+                    .padding()
+
+                    Spacer()
+
+                    // Bottom Legend
+                    VStack(spacing: 12) {
+                        // Depth Legend
+                        VStack(spacing: 8) {
+                            Text("Depth Legend")
+                                .font(.system(size: 14, weight: .semibold, design: .rounded))
+                                .foregroundStyle(.white)
+
+                            HStack(spacing: 4) {
+                                ForEach(0..<10) { i in
+                                    Rectangle()
+                                        .fill(depthColor(for: Float(i) / 10.0))
+                                        .frame(width: 30, height: 20)
+                                }
+                            }
+                            .clipShape(RoundedRectangle(cornerRadius: 8))
+
+                            HStack {
+                                Text("Close (0m)")
+                                    .font(.system(size: 11, design: .rounded))
+                                Spacer()
+                                Text("Far (5m+)")
+                                    .font(.system(size: 11, design: .rounded))
+                            }
+                            .foregroundStyle(.white.opacity(0.8))
+                        }
+                        .padding()
+                        .background(.ultraThinMaterial)
+                        .clipShape(RoundedRectangle(cornerRadius: 16))
+
+                        // Instructions
+                        VStack(spacing: 8) {
+                            HStack(spacing: 8) {
+                                Image(systemName: "hand.tap.fill")
+                                    .font(.system(size: 16))
+                                Text("Tap anywhere to measure distance")
+                                    .font(.system(size: 14, design: .rounded))
+                            }
+                            .foregroundStyle(.white)
+
+                            Text(lidarManager.statusMessage)
+                                .font(.system(size: 12, design: .rounded))
+                                .foregroundStyle(.white.opacity(0.7))
+                                .multilineTextAlignment(.center)
+                        }
+                        .padding()
+                        .background(.ultraThinMaterial)
+                        .clipShape(RoundedRectangle(cornerRadius: 16))
+                    }
+                    .padding()
+                }
+            }
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Done") {
+                        lidarManager.stopSession()
+                        dismiss()
+                    }
+                    .foregroundStyle(.white)
+                    .padding(8)
+                    .background(.ultraThinMaterial)
+                    .clipShape(Capsule())
+                }
+            }
+            .toolbarBackground(.hidden, for: .navigationBar)
+            .onDisappear {
+                lidarManager.stopSession()
+            }
+        }
+    }
+
+    private func depthColor(for normalizedDepth: Float) -> Color {
+        // Heat map: Red (close) -> Yellow -> Green -> Cyan -> Blue (far)
+        let hue = Double(normalizedDepth) * 0.6 // 0.0 (red) to 0.6 (blue)
+        return Color(hue: hue, saturation: 0.8, brightness: 0.9)
+    }
+}
+
+struct LiDARARView: UIViewRepresentable {
+    let manager: LiDARManagerHelper
+    @Binding var selectedPoint: CGPoint?
+    @Binding var selectedDistance: Float?
+
+    func makeUIView(context: Context) -> ARSCNView {
+        let arView = ARSCNView()
+        arView.delegate = context.coordinator
+        arView.session.delegate = context.coordinator
+        context.coordinator.arView = arView
+
+        // Start AR session
+        manager.startSession(with: arView.session)
+
+        let tapGesture = UITapGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.handleTap(_:)))
+        arView.addGestureRecognizer(tapGesture)
+
+        return arView
+    }
+
+    func updateUIView(_ uiView: ARSCNView, context: Context) {
+        // Update if needed
+    }
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(manager: manager, selectedPoint: $selectedPoint, selectedDistance: $selectedDistance)
+    }
+
+    class Coordinator: NSObject, ARSCNViewDelegate, ARSessionDelegate {
+        let manager: LiDARManagerHelper
+        var arView: ARSCNView?
+        @Binding var selectedPoint: CGPoint?
+        @Binding var selectedDistance: Float?
+
+        init(manager: LiDARManagerHelper, selectedPoint: Binding<CGPoint?>, selectedDistance: Binding<Float?>) {
+            self.manager = manager
+            self._selectedPoint = selectedPoint
+            self._selectedDistance = selectedDistance
+        }
+
+        @objc func handleTap(_ gesture: UITapGestureRecognizer) {
+            guard let arView = arView else { return }
+            let location = gesture.location(in: arView)
+
+            // Perform hit test
+            let hitResults = arView.hitTest(location, types: .featurePoint)
+            if let hit = hitResults.first {
+                let distance = Float(hit.distance)
+                DispatchQueue.main.async {
+                    self.selectedPoint = location
+                    self.selectedDistance = distance
+                }
+            }
+        }
+
+        func session(_ session: ARSession, didUpdate frame: ARFrame) {
+            // Process depth data
+            if let depthData = frame.sceneDepth?.depthMap {
+                manager.processDepthData(depthData)
+            }
+        }
+
+        func session(_ session: ARSession, didFailWithError error: Error) {
+            DispatchQueue.main.async {
+                self.manager.statusMessage = "AR Session failed: \(error.localizedDescription)"
+            }
+        }
+
+        func sessionWasInterrupted(_ session: ARSession) {
+            DispatchQueue.main.async {
+                self.manager.statusMessage = "AR Session interrupted"
+            }
+        }
+
+        func sessionInterruptionEnded(_ session: ARSession) {
+            DispatchQueue.main.async {
+                self.manager.statusMessage = "LiDAR active - Scanning environment"
+            }
+        }
+    }
+}
+
+class LiDARManagerHelper: NSObject, ObservableObject {
+    private var arSession: ARSession?
+    @Published var statusMessage = "Initializing LiDAR..."
+    private var isSessionRunning = false
+
+    func startSession(with session: ARSession) {
+        guard !isSessionRunning else { return }
+        arSession = session
+
+        if #available(iOS 14.0, *) {
+            let configuration = ARWorldTrackingConfiguration()
+
+            if ARWorldTrackingConfiguration.supportsSceneReconstruction(.mesh) {
+                configuration.sceneReconstruction = .mesh
+                configuration.frameSemantics.insert(.sceneDepth)
+
+                DispatchQueue.main.async {
+                    self.statusMessage = "LiDAR active - Scanning environment"
+                }
+
+                session.run(configuration, options: [.resetTracking, .removeExistingAnchors])
+                isSessionRunning = true
+            } else {
+                DispatchQueue.main.async {
+                    self.statusMessage = "LiDAR not available on this device"
+                }
+            }
+        } else {
+            DispatchQueue.main.async {
+                self.statusMessage = "Requires iOS 14.0 or later"
+            }
+        }
+    }
+
+    func stopSession() {
+        guard isSessionRunning else { return }
+        arSession?.pause()
+        isSessionRunning = false
+    }
+
+    func processDepthData(_ depthMap: CVPixelBuffer) {
+        // Process depth map data
+        // This can be used for visualization
+    }
+}
+
+// MARK: - OSS Licenses View
+
+struct OSSLicensesView: View {
+    var body: some View {
+        List {
+            Section {
+                Text("Activity Monitor uses the following Apple frameworks and technologies to provide comprehensive device monitoring and sensor testing capabilities.")
+                    .font(.system(size: 14, design: .rounded))
+                    .foregroundStyle(.secondary)
+            }
+
+            Section {
+                OSSLicenseRow(
+                    name: "SwiftUI",
+                    description: "Apple's declarative framework for building user interfaces across all Apple platforms.",
+                    version: "iOS 17.0+",
+                    license: "Apple Software License"
+                )
+
+                OSSLicenseRow(
+                    name: "AVFoundation",
+                    description: "Framework for working with audiovisual media, including camera capture, audio recording, and playback.",
+                    version: "iOS 17.0+",
+                    license: "Apple Software License"
+                )
+
+                OSSLicenseRow(
+                    name: "CoreMotion",
+                    description: "Framework for accessing motion and environmental sensor data, including accelerometer, gyroscope, magnetometer, and barometer.",
+                    version: "iOS 17.0+",
+                    license: "Apple Software License"
+                )
+
+                OSSLicenseRow(
+                    name: "CoreLocation",
+                    description: "Framework for determining device location and heading information using GPS and compass.",
+                    version: "iOS 17.0+",
+                    license: "Apple Software License"
+                )
+
+                OSSLicenseRow(
+                    name: "LocalAuthentication",
+                    description: "Framework for authenticating users via Face ID, Touch ID, or Optic ID.",
+                    version: "iOS 17.0+",
+                    license: "Apple Software License"
+                )
+
+                OSSLicenseRow(
+                    name: "ARKit",
+                    description: "Framework for creating augmented reality experiences with device motion tracking and scene understanding.",
+                    version: "iOS 17.0+",
+                    license: "Apple Software License"
+                )
+
+                OSSLicenseRow(
+                    name: "CoreNFC",
+                    description: "Framework for reading Near Field Communication (NFC) tags.",
+                    version: "iOS 17.0+",
+                    license: "Apple Software License"
+                )
+
+                OSSLicenseRow(
+                    name: "WidgetKit",
+                    description: "Framework for creating home screen widgets and Live Activities.",
+                    version: "iOS 17.0+",
+                    license: "Apple Software License"
+                )
+
+                OSSLicenseRow(
+                    name: "ActivityKit",
+                    description: "Framework for displaying Live Activities on the Lock Screen and Dynamic Island.",
+                    version: "iOS 16.1+",
+                    license: "Apple Software License"
+                )
+            } header: {
+                Text("Apple Frameworks")
+                    .font(.system(size: 13, weight: .semibold, design: .rounded))
+            }
+
+            Section {
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Apple Software License Agreement")
+                        .font(.system(size: 16, weight: .semibold, design: .rounded))
+
+                    Text("All Apple frameworks and technologies are used under the Apple Software License Agreement. For the complete license terms, please visit:")
+                        .font(.system(size: 14, design: .rounded))
+                        .foregroundStyle(.secondary)
+
+                    Link("developer.apple.com/terms", destination: URL(string: "https://developer.apple.com/terms/")!)
+                        .font(.system(size: 14, weight: .medium, design: .rounded))
+                }
+                .padding(.vertical, 8)
+            } header: {
+                Text("License Information")
+                    .font(.system(size: 13, weight: .semibold, design: .rounded))
+            }
+
+            Section {
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack(spacing: 8) {
+                        Image(systemName: "swift")
+                            .font(.system(size: 20))
+                            .foregroundStyle(.orange)
+                        Text("Built with Swift")
+                            .font(.system(size: 16, weight: .semibold, design: .rounded))
+                    }
+
+                    Text("This application is written entirely in Swift, Apple's powerful and intuitive programming language.")
+                        .font(.system(size: 14, design: .rounded))
+                        .foregroundStyle(.secondary)
+
+                    HStack(spacing: 16) {
+                        Label("Modern", systemImage: "sparkles")
+                        Label("Safe", systemImage: "lock.shield")
+                        Label("Fast", systemImage: "hare")
+                    }
+                    .font(.system(size: 13, weight: .medium, design: .rounded))
+                    .foregroundStyle(.blue)
+                }
+                .padding(.vertical, 8)
+            }
+
+            Section {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("© 2025 Activity Monitor")
+                        .font(.system(size: 14, weight: .medium, design: .rounded))
+
+                    Text("All rights reserved. This application and its source code are provided for monitoring device sensors and system metrics.")
+                        .font(.system(size: 13, design: .rounded))
+                        .foregroundStyle(.secondary)
+                }
+                .padding(.vertical, 8)
+            } header: {
+                Text("Copyright")
+                    .font(.system(size: 13, weight: .semibold, design: .rounded))
+            }
+        }
+        .navigationTitle("Open Source Licenses")
+        .navigationBarTitleDisplayMode(.large)
+    }
+}
+
+struct OSSLicenseRow: View {
+    let name: String
+    let description: String
+    let version: String
+    let license: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text(name)
+                    .font(.system(size: 16, weight: .semibold, design: .rounded))
+                    .foregroundStyle(.primary)
+                Spacer()
+                Text(version)
+                    .font(.system(size: 12, weight: .medium, design: .rounded))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(.blue.gradient)
+                    .clipShape(Capsule())
+            }
+
+            Text(description)
+                .font(.system(size: 14, design: .rounded))
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            HStack(spacing: 6) {
+                Image(systemName: "doc.text")
+                    .font(.system(size: 11))
+                Text(license)
+                    .font(.system(size: 12, weight: .medium, design: .rounded))
+            }
+            .foregroundStyle(.tertiary)
+        }
+        .padding(.vertical, 4)
     }
 }
 

@@ -72,6 +72,8 @@
     <string>Activity Monitor uses motion sensors to display real-time accelerometer, gyroscope, magnetometer, and barometer data.</string>
     <key>NSLocationWhenInUseUsageDescription</key>
     <string>Activity Monitor uses your location to display GPS coordinates, altitude, speed, and compass heading.</string>
+    <key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+    <string>Activity Monitor uses your location in the background to monitor geographic regions and notify you when entering or exiting defined areas.</string>
     <key>NSMicrophoneUsageDescription</key>
     <string>Activity Monitor uses the microphone to display audio level meter and test microphone functionality.</string>
     <key>NSCameraUsageDescription</key>

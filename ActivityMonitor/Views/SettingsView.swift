@@ -2132,6 +2132,10 @@ struct SensorsView: View {
     @State private var showingAudio = false
     @State private var showingCamera = false
     @State private var showingLiDAR = false
+    @State private var showingMotionCoprocessor = false
+    @State private var showingIBeacon = false
+    @State private var showingRegionMonitoring = false
+    @State private var showingActivityRecognition = false
 
     var body: some View {
         List {
@@ -2287,8 +2291,15 @@ struct SensorsView: View {
                 }
                 .disabled(!motionManager.isDeviceMotionAvailable)
 
-                FeatureRow(name: "Activity Recognition", available: CMMotionActivityManager.isActivityAvailable(), icon: "figure.run")
-                FeatureRow(name: "Motion Coprocessor", available: hasMotionCoprocessor(), icon: "cpu")
+                Button { showingMotionCoprocessor = true } label: {
+                    FeatureRow(name: "Motion Coprocessor", available: hasMotionCoprocessor(), icon: "cpu")
+                }
+                .disabled(!hasMotionCoprocessor())
+
+                Button { showingActivityRecognition = true } label: {
+                    FeatureRow(name: "Activity Recognition", available: CMMotionActivityManager.isActivityAvailable(), icon: "figure.run")
+                }
+                .disabled(!CMMotionActivityManager.isActivityAvailable())
             } header: {
                 HStack {
                     Image(systemName: "figure.walk.motion")
@@ -2311,8 +2322,15 @@ struct SensorsView: View {
                     FeatureRow(name: "Compass", available: CLLocationManager.headingAvailable(), icon: "location.north.line.fill")
                 }
 
-                FeatureRow(name: "iBeacon", available: CLLocationManager.isMonitoringAvailable(for: CLBeaconRegion.self), icon: "wave.3.right")
-                FeatureRow(name: "Region Monitoring", available: CLLocationManager.isMonitoringAvailable(for: CLCircularRegion.self), icon: "map")
+                Button { showingIBeacon = true } label: {
+                    FeatureRow(name: "iBeacon", available: CLLocationManager.isMonitoringAvailable(for: CLBeaconRegion.self), icon: "wave.3.right")
+                }
+                .disabled(!CLLocationManager.isMonitoringAvailable(for: CLBeaconRegion.self))
+
+                Button { showingRegionMonitoring = true } label: {
+                    FeatureRow(name: "Region Monitoring", available: CLLocationManager.isMonitoringAvailable(for: CLCircularRegion.self), icon: "map")
+                }
+                .disabled(!CLLocationManager.isMonitoringAvailable(for: CLCircularRegion.self))
             } header: {
                 HStack {
                     Image(systemName: "location.circle.fill")
@@ -2467,6 +2485,18 @@ struct SensorsView: View {
         }
         .sheet(isPresented: $showingLiDAR) {
             LiDARDepthView()
+        }
+        .sheet(isPresented: $showingMotionCoprocessor) {
+            MotionCoprocessorDetailView()
+        }
+        .sheet(isPresented: $showingIBeacon) {
+            IBeaconDetailView()
+        }
+        .sheet(isPresented: $showingRegionMonitoring) {
+            RegionMonitoringDetailView()
+        }
+        .sheet(isPresented: $showingActivityRecognition) {
+            ActivityRecognitionDetailView()
         }
     }
 
@@ -3992,6 +4022,361 @@ struct DeviceMotionDetailView: View {
     }
 }
 
+struct MotionCoprocessorDetailView: View {
+    @Environment(\.dismiss) private var dismiss
+    @StateObject private var activityManager = MotionActivityManagerHelper()
+    @StateObject private var pedometerManager = PedometerManagerHelper()
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(spacing: 24) {
+                    // Header Icon
+                    Image(systemName: "cpu")
+                        .font(.system(size: 80))
+                        .foregroundStyle(.orange.gradient)
+                        .symbolRenderingMode(.hierarchical)
+
+                    Text("Motion Coprocessor")
+                        .font(.system(size: 28, weight: .bold, design: .rounded))
+
+                    // Coprocessor Model
+                    VStack(spacing: 12) {
+                        Text("Chip Model")
+                            .font(.system(size: 14, weight: .semibold, design: .rounded))
+                            .foregroundStyle(.secondary)
+
+                        Text(getMotionCoprocessorModel())
+                            .font(.system(size: 32, weight: .bold, design: .rounded))
+                            .foregroundStyle(.orange)
+                    }
+                    .padding()
+                    .frame(maxWidth: .infinity)
+                    .background(.ultraThinMaterial)
+                    .clipShape(RoundedRectangle(cornerRadius: 20))
+
+                    // Current Activity
+                    if CMMotionActivityManager.isActivityAvailable() {
+                        VStack(spacing: 16) {
+                            HStack {
+                                Image(systemName: getActivityIcon(activityManager.currentActivity))
+                                    .font(.system(size: 40))
+                                    .foregroundStyle(getActivityColor(activityManager.currentActivity))
+                                    .symbolRenderingMode(.hierarchical)
+                                    .frame(width: 60)
+
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text("Current Activity")
+                                        .font(.system(size: 14, weight: .semibold, design: .rounded))
+                                        .foregroundStyle(.secondary)
+
+                                    Text(activityManager.currentActivity)
+                                        .font(.system(size: 22, weight: .bold, design: .rounded))
+                                        .foregroundStyle(.primary)
+
+                                    if activityManager.confidence != "Unknown" {
+                                        Text("Confidence: \(activityManager.confidence)")
+                                            .font(.system(size: 12, design: .rounded))
+                                            .foregroundStyle(.secondary)
+                                    }
+                                }
+
+                                Spacer()
+                            }
+                        }
+                        .padding()
+                        .background(.ultraThinMaterial)
+                        .clipShape(RoundedRectangle(cornerRadius: 20))
+                    }
+
+                    // Pedometer Data
+                    if CMPedometer.isStepCountingAvailable() {
+                        VStack(spacing: 16) {
+                            Text("Today's Activity")
+                                .font(.system(size: 16, weight: .semibold, design: .rounded))
+                                .foregroundStyle(.secondary)
+
+                            HStack(spacing: 20) {
+                                // Steps
+                                VStack(spacing: 8) {
+                                    Image(systemName: "figure.walk")
+                                        .font(.system(size: 24))
+                                        .foregroundStyle(.blue)
+
+                                    Text("\(pedometerManager.steps)")
+                                        .font(.system(size: 24, weight: .bold, design: .rounded))
+                                        .foregroundStyle(.primary)
+
+                                    Text("Steps")
+                                        .font(.system(size: 12, design: .rounded))
+                                        .foregroundStyle(.secondary)
+                                }
+                                .frame(maxWidth: .infinity)
+
+                                Divider().frame(height: 60)
+
+                                // Distance
+                                VStack(spacing: 8) {
+                                    Image(systemName: "map")
+                                        .font(.system(size: 24))
+                                        .foregroundStyle(.green)
+
+                                    Text(String(format: "%.2f", pedometerManager.distance / 1000))
+                                        .font(.system(size: 24, weight: .bold, design: .rounded))
+                                        .foregroundStyle(.primary)
+
+                                    Text("Kilometers")
+                                        .font(.system(size: 12, design: .rounded))
+                                        .foregroundStyle(.secondary)
+                                }
+                                .frame(maxWidth: .infinity)
+                            }
+
+                            Divider()
+
+                            HStack(spacing: 20) {
+                                // Floors Up
+                                VStack(spacing: 8) {
+                                    Image(systemName: "arrow.up.circle.fill")
+                                        .font(.system(size: 24))
+                                        .foregroundStyle(.orange)
+
+                                    Text("\(pedometerManager.floorsAscended)")
+                                        .font(.system(size: 24, weight: .bold, design: .rounded))
+                                        .foregroundStyle(.primary)
+
+                                    Text("Floors Up")
+                                        .font(.system(size: 12, design: .rounded))
+                                        .foregroundStyle(.secondary)
+                                }
+                                .frame(maxWidth: .infinity)
+
+                                Divider().frame(height: 60)
+
+                                // Floors Down
+                                VStack(spacing: 8) {
+                                    Image(systemName: "arrow.down.circle.fill")
+                                        .font(.system(size: 24))
+                                        .foregroundStyle(.purple)
+
+                                    Text("\(pedometerManager.floorsDescended)")
+                                        .font(.system(size: 24, weight: .bold, design: .rounded))
+                                        .foregroundStyle(.primary)
+
+                                    Text("Floors Down")
+                                        .font(.system(size: 12, design: .rounded))
+                                        .foregroundStyle(.secondary)
+                                }
+                                .frame(maxWidth: .infinity)
+                            }
+
+                            if pedometerManager.currentPace > 0 {
+                                Divider()
+
+                                VStack(spacing: 8) {
+                                    Image(systemName: "speedometer")
+                                        .font(.system(size: 24))
+                                        .foregroundStyle(.cyan)
+
+                                    Text(String(format: "%.1f", pedometerManager.currentPace * 60))
+                                        .font(.system(size: 24, weight: .bold, design: .rounded))
+                                        .foregroundStyle(.primary)
+
+                                    Text("Steps/Minute")
+                                        .font(.system(size: 12, design: .rounded))
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+                        }
+                        .padding()
+                        .background(.ultraThinMaterial)
+                        .clipShape(RoundedRectangle(cornerRadius: 20))
+                    }
+
+                    // Info Section
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack {
+                            Image(systemName: "info.circle.fill")
+                                .foregroundStyle(.blue)
+                            Text("About Motion Coprocessor")
+                                .font(.system(size: 14, weight: .semibold, design: .rounded))
+                        }
+
+                        Text("The motion coprocessor continuously monitors motion data from the accelerometer, gyroscope, compass, and barometer without draining battery. It enables features like step counting, activity recognition, and fitness tracking.")
+                            .font(.system(size: 13, design: .rounded))
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .padding()
+                    .background(.ultraThinMaterial)
+                    .clipShape(RoundedRectangle(cornerRadius: 20))
+
+                    Spacer()
+                }
+                .padding()
+            }
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Done") { dismiss() }
+                }
+            }
+            .onAppear {
+                activityManager.startMonitoring()
+                pedometerManager.startMonitoring()
+            }
+            .onDisappear {
+                activityManager.stopMonitoring()
+                pedometerManager.stopMonitoring()
+            }
+        }
+    }
+
+    private func getMotionCoprocessorModel() -> String {
+        var systemInfo = utsname()
+        uname(&systemInfo)
+        let machineMirror = Mirror(reflecting: systemInfo.machine)
+        let identifier = machineMirror.children.reduce("") { identifier, element in
+            guard let value = element.value as? Int8, value != 0 else { return identifier }
+            return identifier + String(UnicodeScalar(UInt8(value)))
+        }
+
+        // Map device models to motion coprocessor models
+        if identifier.contains("iPhone17") { return "M16" }
+        if identifier.contains("iPhone16") { return "M16" }
+        if identifier.contains("iPhone15") { return "M15" }
+        if identifier.contains("iPhone14") { return "M14" }
+        if identifier.contains("iPhone13") { return "M13" }
+        if identifier.contains("iPhone12") { return "M12" }
+        if identifier.contains("iPhone11") { return "M11" }
+        if identifier.contains("iPhone10") { return "M10" }
+        if identifier.contains("iPhone9") { return "M10" }
+        if identifier.contains("iPhone8") { return "M9" }
+        if identifier.contains("iPhone7") { return "M8" }
+        if identifier.contains("iPhone6") { return "M7" }
+
+        return "M-Series"
+    }
+
+    private func getActivityIcon(_ activity: String) -> String {
+        switch activity {
+        case "Stationary": return "figure.stand"
+        case "Walking": return "figure.walk"
+        case "Running": return "figure.run"
+        case "Cycling": return "figure.outdoor.cycle"
+        case "Automotive": return "car.fill"
+        default: return "questionmark.circle"
+        }
+    }
+
+    private func getActivityColor(_ activity: String) -> Color {
+        switch activity {
+        case "Stationary": return .gray
+        case "Walking": return .blue
+        case "Running": return .orange
+        case "Cycling": return .green
+        case "Automotive": return .red
+        default: return .secondary
+        }
+    }
+}
+
+// MARK: - Motion Activity Manager Helper
+
+class MotionActivityManagerHelper: ObservableObject {
+    @Published var currentActivity: String = "Unknown"
+    @Published var confidence: String = "Unknown"
+
+    private let activityManager = CMMotionActivityManager()
+
+    func startMonitoring() {
+        guard CMMotionActivityManager.isActivityAvailable() else {
+            currentActivity = "Not Available"
+            return
+        }
+
+        activityManager.startActivityUpdates(to: .main) { [weak self] activity in
+            guard let activity = activity else { return }
+
+            if activity.stationary {
+                self?.currentActivity = "Stationary"
+            } else if activity.walking {
+                self?.currentActivity = "Walking"
+            } else if activity.running {
+                self?.currentActivity = "Running"
+            } else if activity.cycling {
+                self?.currentActivity = "Cycling"
+            } else if activity.automotive {
+                self?.currentActivity = "Automotive"
+            } else {
+                self?.currentActivity = "Unknown"
+            }
+
+            switch activity.confidence {
+            case .low:
+                self?.confidence = "Low"
+            case .medium:
+                self?.confidence = "Medium"
+            case .high:
+                self?.confidence = "High"
+            @unknown default:
+                self?.confidence = "Unknown"
+            }
+        }
+    }
+
+    func stopMonitoring() {
+        activityManager.stopActivityUpdates()
+    }
+}
+
+// MARK: - Pedometer Manager Helper
+
+class PedometerManagerHelper: ObservableObject {
+    @Published var steps: Int = 0
+    @Published var distance: Double = 0.0
+    @Published var floorsAscended: Int = 0
+    @Published var floorsDescended: Int = 0
+    @Published var currentPace: Double = 0.0
+
+    private let pedometer = CMPedometer()
+
+    func startMonitoring() {
+        guard CMPedometer.isStepCountingAvailable() else { return }
+
+        // Get today's data
+        let calendar = Calendar.current
+        let now = Date()
+        guard let startOfDay = calendar.date(bySettingHour: 0, minute: 0, second: 0, of: now) else { return }
+
+        pedometer.queryPedometerData(from: startOfDay, to: now) { [weak self] data, error in
+            guard let data = data, error == nil else { return }
+
+            DispatchQueue.main.async {
+                self?.steps = data.numberOfSteps.intValue
+                self?.distance = data.distance?.doubleValue ?? 0.0
+                self?.floorsAscended = data.floorsAscended?.intValue ?? 0
+                self?.floorsDescended = data.floorsDescended?.intValue ?? 0
+            }
+        }
+
+        // Start live updates
+        pedometer.startUpdates(from: Date()) { [weak self] data, error in
+            guard let data = data, error == nil else { return }
+
+            DispatchQueue.main.async {
+                if let pace = data.currentPace {
+                    self?.currentPace = pace.doubleValue
+                }
+            }
+        }
+    }
+
+    func stopMonitoring() {
+        pedometer.stopUpdates()
+    }
+}
+
 struct GPSLocationDetailView: View {
     @Environment(\.dismiss) private var dismiss
     @StateObject private var locationManager = LocationManagerHelper()
@@ -4245,6 +4630,1397 @@ class CompassManagerHelper: NSObject, ObservableObject, CLLocationManagerDelegat
         let directions = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"]
         let index = Int((degrees + 22.5) / 45.0) % 8
         return directions[index]
+    }
+}
+
+struct IBeaconDetailView: View {
+    @Environment(\.dismiss) private var dismiss
+    @StateObject private var beaconManager = BeaconManagerHelper()
+
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: 0) {
+                // Scanning Indicator
+                if beaconManager.isScanning {
+                    HStack(spacing: 12) {
+                        ProgressView()
+                            .tint(.blue)
+
+                        Text("Scanning for iBeacons...")
+                            .font(.system(size: 14, weight: .medium, design: .rounded))
+                            .foregroundStyle(.secondary)
+
+                        Spacer()
+                    }
+                    .padding()
+                    .background(.blue.opacity(0.1))
+                }
+
+                // Beacons List
+                List {
+                    if beaconManager.detectedBeacons.isEmpty {
+                        VStack(spacing: 16) {
+                            Image(systemName: "wave.3.right.circle")
+                                .font(.system(size: 60))
+                                .foregroundStyle(.gray)
+                                .symbolRenderingMode(.hierarchical)
+
+                            Text("No iBeacons Detected")
+                                .font(.system(size: 18, weight: .semibold, design: .rounded))
+                                .foregroundStyle(.primary)
+
+                            Text("Make sure iBeacons are nearby and broadcasting.")
+                                .font(.system(size: 14, design: .rounded))
+                                .foregroundStyle(.secondary)
+                                .multilineTextAlignment(.center)
+
+                            if !beaconManager.isScanning {
+                                Button {
+                                    beaconManager.startScanning()
+                                } label: {
+                                    Label("Start Scanning", systemImage: "play.fill")
+                                        .font(.system(size: 16, weight: .semibold, design: .rounded))
+                                }
+                                .buttonStyle(.bordered)
+                                .buttonBorderShape(.capsule)
+                                .tint(.blue)
+                            }
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 40)
+                        .listRowBackground(Color.clear)
+                    } else {
+                        Section {
+                            ForEach(beaconManager.detectedBeacons) { beacon in
+                                BeaconRow(beacon: beacon)
+                            }
+                        } header: {
+                            HStack {
+                                Image(systemName: "dot.radiowaves.left.and.right")
+                                    .foregroundStyle(.blue)
+                                Text("Detected Beacons (\(beaconManager.detectedBeacons.count))")
+                            }
+                            .font(.system(size: 13, weight: .semibold, design: .rounded))
+                        }
+                    }
+
+                    // Info Section
+                    Section {
+                        VStack(alignment: .leading, spacing: 12) {
+                            HStack {
+                                Image(systemName: "info.circle.fill")
+                                    .foregroundStyle(.blue)
+                                Text("About iBeacon")
+                                    .font(.system(size: 14, weight: .semibold, design: .rounded))
+                            }
+
+                            Text("iBeacon is Apple's implementation of Bluetooth Low Energy (BLE) proximity sensing. Each beacon broadcasts a unique identifier consisting of UUID, Major, and Minor values.")
+                                .font(.system(size: 13, design: .rounded))
+                                .foregroundStyle(.secondary)
+                                .fixedSize(horizontal: false, vertical: true)
+
+                            Divider()
+
+                            VStack(alignment: .leading, spacing: 8) {
+                                InfoItem(title: "Immediate", description: "Within a few centimeters", color: .green)
+                                InfoItem(title: "Near", description: "Within a couple of meters", color: .blue)
+                                InfoItem(title: "Far", description: "More than 10 meters away", color: .orange)
+                                InfoItem(title: "Unknown", description: "Distance cannot be determined", color: .gray)
+                            }
+                        }
+                        .padding(.vertical, 8)
+                    } header: {
+                        HStack {
+                            Image(systemName: "book.fill")
+                                .foregroundStyle(.cyan)
+                            Text("Proximity Ranges")
+                        }
+                        .font(.system(size: 13, weight: .semibold, design: .rounded))
+                    }
+                }
+                .listStyle(.insetGrouped)
+            }
+            .navigationTitle("iBeacon Scanner")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button {
+                        if beaconManager.isScanning {
+                            beaconManager.stopScanning()
+                        } else {
+                            beaconManager.startScanning()
+                        }
+                    } label: {
+                        Label(
+                            beaconManager.isScanning ? "Stop" : "Scan",
+                            systemImage: beaconManager.isScanning ? "stop.circle.fill" : "play.circle.fill"
+                        )
+                    }
+                    .buttonStyle(.bordered)
+                    .buttonBorderShape(.capsule)
+                    .tint(beaconManager.isScanning ? .red : .green)
+                }
+
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Done") { dismiss() }
+                }
+            }
+            .onAppear {
+                beaconManager.startScanning()
+            }
+            .onDisappear {
+                beaconManager.stopScanning()
+            }
+        }
+    }
+}
+
+struct BeaconRow: View {
+    let beacon: DetectedBeacon
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Circle()
+                    .fill(proximityColor(beacon.proximity))
+                    .frame(width: 12, height: 12)
+
+                Text(proximityText(beacon.proximity))
+                    .font(.system(size: 14, weight: .semibold, design: .rounded))
+                    .foregroundStyle(proximityColor(beacon.proximity))
+
+                Spacer()
+
+                if beacon.accuracy >= 0 {
+                    Text(String(format: "~%.1fm", beacon.accuracy))
+                        .font(.system(size: 13, weight: .medium, design: .monospaced))
+                        .foregroundStyle(.secondary)
+                }
+            }
+
+            VStack(alignment: .leading, spacing: 6) {
+                HStack {
+                    Text("UUID:")
+                        .font(.system(size: 12, weight: .medium, design: .rounded))
+                        .foregroundStyle(.secondary)
+                        .frame(width: 60, alignment: .leading)
+
+                    Text(beacon.uuid)
+                        .font(.system(size: 11, design: .monospaced))
+                        .foregroundStyle(.primary)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                }
+
+                HStack {
+                    Text("Major:")
+                        .font(.system(size: 12, weight: .medium, design: .rounded))
+                        .foregroundStyle(.secondary)
+                        .frame(width: 60, alignment: .leading)
+
+                    Text("\(beacon.major)")
+                        .font(.system(size: 12, design: .monospaced))
+                        .foregroundStyle(.primary)
+                }
+
+                HStack {
+                    Text("Minor:")
+                        .font(.system(size: 12, weight: .medium, design: .rounded))
+                        .foregroundStyle(.secondary)
+                        .frame(width: 60, alignment: .leading)
+
+                    Text("\(beacon.minor)")
+                        .font(.system(size: 12, design: .monospaced))
+                        .foregroundStyle(.primary)
+                }
+
+                HStack {
+                    Text("RSSI:")
+                        .font(.system(size: 12, weight: .medium, design: .rounded))
+                        .foregroundStyle(.secondary)
+                        .frame(width: 60, alignment: .leading)
+
+                    Text("\(beacon.rssi) dBm")
+                        .font(.system(size: 12, design: .monospaced))
+                        .foregroundStyle(.orange)
+                }
+            }
+            .padding(.leading, 20)
+        }
+        .padding(.vertical, 4)
+    }
+
+    private func proximityText(_ proximity: String) -> String {
+        switch proximity {
+        case "immediate": return "Immediate"
+        case "near": return "Near"
+        case "far": return "Far"
+        default: return "Unknown"
+        }
+    }
+
+    private func proximityColor(_ proximity: String) -> Color {
+        switch proximity {
+        case "immediate": return .green
+        case "near": return .blue
+        case "far": return .orange
+        default: return .gray
+        }
+    }
+}
+
+struct InfoItem: View {
+    let title: String
+    let description: String
+    let color: Color
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Circle()
+                .fill(color)
+                .frame(width: 10, height: 10)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.system(size: 12, weight: .semibold, design: .rounded))
+                    .foregroundStyle(.primary)
+
+                Text(description)
+                    .font(.system(size: 11, design: .rounded))
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+}
+
+// MARK: - Beacon Manager Helper
+
+struct DetectedBeacon: Identifiable {
+    let id = UUID()
+    let uuid: String
+    let major: Int
+    let minor: Int
+    let proximity: String
+    let accuracy: Double
+    let rssi: Int
+    let timestamp: Date
+}
+
+class BeaconManagerHelper: NSObject, ObservableObject, CLLocationManagerDelegate {
+    @Published var detectedBeacons: [DetectedBeacon] = []
+    @Published var isScanning = false
+
+    private let locationManager = CLLocationManager()
+    private var beaconRegions: [CLBeaconRegion] = []
+
+    override init() {
+        super.init()
+        locationManager.delegate = self
+        setupBeaconRegions()
+    }
+
+    private func setupBeaconRegions() {
+        // Common iBeacon UUIDs for testing
+        // You can add more UUIDs here for specific beacon manufacturers
+        let commonUUIDs = [
+            "E2C56DB5-DFFB-48D2-B060-D0F5A71096E0", // Apple AirLocate
+            "FDA50693-A4E2-4FB1-AFCF-C6EB07647825", // Estimote
+            "B9407F30-F5F8-466E-AFF9-25556B57FE6D", // Kontakt.io
+            "F7826DA6-4FA2-4E98-8024-BC5B71E0893E", // Radius Networks
+            "2F234454-CF6D-4A0F-ADF2-F4911BA9FFA6"  // Generic
+        ]
+
+        for uuidString in commonUUIDs {
+            if let uuid = UUID(uuidString: uuidString) {
+                if #available(iOS 13.0, *) {
+                    let beaconConstraint = CLBeaconIdentityConstraint(uuid: uuid)
+                    let region = CLBeaconRegion(beaconIdentityConstraint: beaconConstraint, identifier: uuidString)
+                    beaconRegions.append(region)
+                } else {
+                    let region = CLBeaconRegion(proximityUUID: uuid, identifier: uuidString)
+                    beaconRegions.append(region)
+                }
+            }
+        }
+    }
+
+    func startScanning() {
+        locationManager.requestWhenInUseAuthorization()
+
+        isScanning = true
+        detectedBeacons.removeAll()
+
+        for region in beaconRegions {
+            locationManager.startMonitoring(for: region)
+            if #available(iOS 13.0, *) {
+                locationManager.startRangingBeacons(satisfying: region.beaconIdentityConstraint)
+            } else {
+                locationManager.startRangingBeacons(in: region)
+            }
+        }
+    }
+
+    func stopScanning() {
+        isScanning = false
+
+        for region in beaconRegions {
+            locationManager.stopMonitoring(for: region)
+            if #available(iOS 13.0, *) {
+                locationManager.stopRangingBeacons(satisfying: region.beaconIdentityConstraint)
+            } else {
+                locationManager.stopRangingBeacons(in: region)
+            }
+        }
+
+        detectedBeacons.removeAll()
+    }
+
+    // iOS 13+
+    @available(iOS 13.0, *)
+    func locationManager(_ manager: CLLocationManager, didRange beacons: [CLBeacon], satisfying beaconConstraint: CLBeaconIdentityConstraint) {
+        updateBeacons(beacons)
+    }
+
+    // iOS 12 and earlier
+    func locationManager(_ manager: CLLocationManager, didRangeBeacons beacons: [CLBeacon], in region: CLBeaconRegion) {
+        updateBeacons(beacons)
+    }
+
+    private func updateBeacons(_ beacons: [CLBeacon]) {
+        DispatchQueue.main.async {
+            // Clear existing beacons
+            self.detectedBeacons.removeAll()
+
+            // Add new beacons
+            for beacon in beacons {
+                let proximityString: String
+                switch beacon.proximity {
+                case .immediate:
+                    proximityString = "immediate"
+                case .near:
+                    proximityString = "near"
+                case .far:
+                    proximityString = "far"
+                default:
+                    proximityString = "unknown"
+                }
+
+                let detectedBeacon = DetectedBeacon(
+                    uuid: beacon.uuid.uuidString,
+                    major: beacon.major.intValue,
+                    minor: beacon.minor.intValue,
+                    proximity: proximityString,
+                    accuracy: beacon.accuracy,
+                    rssi: beacon.rssi,
+                    timestamp: Date()
+                )
+
+                self.detectedBeacons.append(detectedBeacon)
+            }
+
+            // Sort by proximity and accuracy
+            self.detectedBeacons.sort { beacon1, beacon2 in
+                let proximityOrder = ["immediate": 0, "near": 1, "far": 2, "unknown": 3]
+                let order1 = proximityOrder[beacon1.proximity] ?? 4
+                let order2 = proximityOrder[beacon2.proximity] ?? 4
+
+                if order1 == order2 {
+                    return beacon1.accuracy < beacon2.accuracy
+                }
+                return order1 < order2
+            }
+        }
+    }
+
+    func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
+        print("Location manager failed: \(error.localizedDescription)")
+    }
+}
+
+struct RegionMonitoringDetailView: View {
+    @Environment(\.dismiss) private var dismiss
+    @StateObject private var regionManager = RegionMonitoringManagerHelper()
+    @State private var showingAddRegion = false
+    @State private var newRegionName = ""
+    @State private var newRegionLatitude = ""
+    @State private var newRegionLongitude = ""
+    @State private var newRegionRadius = "100"
+
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: 0) {
+                // Current Location Bar
+                if let location = regionManager.currentLocation {
+                    HStack(spacing: 12) {
+                        Image(systemName: "location.fill")
+                            .foregroundStyle(.blue)
+                            .font(.system(size: 16))
+
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Current Location")
+                                .font(.system(size: 12, weight: .medium, design: .rounded))
+                                .foregroundStyle(.secondary)
+
+                            Text(String(format: "%.6f, %.6f", location.coordinate.latitude, location.coordinate.longitude))
+                                .font(.system(size: 11, design: .monospaced))
+                                .foregroundStyle(.primary)
+                        }
+
+                        Spacer()
+
+                        Button {
+                            regionManager.requestLocation()
+                        } label: {
+                            Image(systemName: "arrow.clockwise")
+                                .font(.system(size: 14, weight: .semibold))
+                        }
+                        .buttonStyle(.bordered)
+                        .buttonBorderShape(.circle)
+                        .tint(.blue)
+                    }
+                    .padding()
+                    .background(.blue.opacity(0.1))
+                }
+
+                // Regions List
+                List {
+                    if regionManager.monitoredRegions.isEmpty {
+                        VStack(spacing: 16) {
+                            Image(systemName: "map.circle")
+                                .font(.system(size: 60))
+                                .foregroundStyle(.gray)
+                                .symbolRenderingMode(.hierarchical)
+
+                            Text("No Regions Monitored")
+                                .font(.system(size: 18, weight: .semibold, design: .rounded))
+                                .foregroundStyle(.primary)
+
+                            Text("Add a region to start monitoring. You'll be notified when entering or exiting the region.")
+                                .font(.system(size: 14, design: .rounded))
+                                .foregroundStyle(.secondary)
+                                .multilineTextAlignment(.center)
+
+                            Button {
+                                showingAddRegion = true
+                            } label: {
+                                Label("Add Region", systemImage: "plus.circle.fill")
+                                    .font(.system(size: 16, weight: .semibold, design: .rounded))
+                            }
+                            .buttonStyle(.bordered)
+                            .buttonBorderShape(.capsule)
+                            .tint(.green)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 40)
+                        .listRowBackground(Color.clear)
+                    } else {
+                        Section {
+                            ForEach(regionManager.monitoredRegions) { region in
+                                RegionRow(
+                                    region: region,
+                                    isInside: regionManager.regionStates[region.id] ?? false,
+                                    onDelete: {
+                                        regionManager.removeRegion(region)
+                                    }
+                                )
+                            }
+                        } header: {
+                            HStack {
+                                Image(systemName: "map.fill")
+                                    .foregroundStyle(.green)
+                                Text("Monitored Regions (\(regionManager.monitoredRegions.count))")
+                            }
+                            .font(.system(size: 13, weight: .semibold, design: .rounded))
+                        }
+                    }
+
+                    // Events Log
+                    if !regionManager.events.isEmpty {
+                        Section {
+                            ForEach(regionManager.events.prefix(10)) { event in
+                                EventRow(event: event)
+                            }
+                        } header: {
+                            HStack {
+                                Image(systemName: "clock.fill")
+                                    .foregroundStyle(.orange)
+                                Text("Recent Events")
+                            }
+                            .font(.system(size: 13, weight: .semibold, design: .rounded))
+                        }
+                    }
+
+                    // Info Section
+                    Section {
+                        VStack(alignment: .leading, spacing: 12) {
+                            HStack {
+                                Image(systemName: "info.circle.fill")
+                                    .foregroundStyle(.blue)
+                                Text("About Region Monitoring")
+                                    .font(.system(size: 14, weight: .semibold, design: .rounded))
+                            }
+
+                            Text("Region monitoring allows your device to detect when you enter or exit a defined geographic area. Each region is defined by a center coordinate (latitude/longitude) and a radius.")
+                                .font(.system(size: 13, design: .rounded))
+                                .foregroundStyle(.secondary)
+                                .fixedSize(horizontal: false, vertical: true)
+
+                            Divider()
+
+                            VStack(alignment: .leading, spacing: 8) {
+                                InfoItem(title: "Max Radius", description: "Up to 400 meters", color: .blue)
+                                InfoItem(title: "System Limit", description: "Max 20 regions per app", color: .orange)
+                                InfoItem(title: "Battery Impact", description: "Low - uses geofencing", color: .green)
+                            }
+                        }
+                        .padding(.vertical, 8)
+                    } header: {
+                        HStack {
+                            Image(systemName: "book.fill")
+                                .foregroundStyle(.cyan)
+                            Text("Information")
+                        }
+                        .font(.system(size: 13, weight: .semibold, design: .rounded))
+                    }
+                }
+                .listStyle(.insetGrouped)
+            }
+            .navigationTitle("Region Monitoring")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button {
+                        showingAddRegion = true
+                    } label: {
+                        Label("Add Region", systemImage: "plus.circle.fill")
+                    }
+                    .buttonStyle(.bordered)
+                    .buttonBorderShape(.capsule)
+                    .tint(.green)
+                }
+
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Done") { dismiss() }
+                }
+            }
+            .sheet(isPresented: $showingAddRegion) {
+                AddRegionView(
+                    name: $newRegionName,
+                    latitude: $newRegionLatitude,
+                    longitude: $newRegionLongitude,
+                    radius: $newRegionRadius,
+                    currentLocation: regionManager.currentLocation,
+                    onAdd: { name, lat, lon, radius in
+                        regionManager.addRegion(
+                            name: name,
+                            latitude: lat,
+                            longitude: lon,
+                            radius: radius
+                        )
+                        showingAddRegion = false
+                        newRegionName = ""
+                        newRegionLatitude = ""
+                        newRegionLongitude = ""
+                        newRegionRadius = "100"
+                    }
+                )
+            }
+            .onAppear {
+                regionManager.startMonitoring()
+            }
+            .onDisappear {
+                regionManager.stopMonitoring()
+            }
+        }
+    }
+}
+
+struct RegionRow: View {
+    let region: MonitoredRegion
+    let isInside: Bool
+    let onDelete: () -> Void
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Circle()
+                .fill(isInside ? Color.green : Color.gray)
+                .frame(width: 12, height: 12)
+
+            VStack(alignment: .leading, spacing: 6) {
+                Text(region.name)
+                    .font(.system(size: 16, weight: .semibold, design: .rounded))
+                    .foregroundStyle(.primary)
+
+                HStack(spacing: 16) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "mappin.circle.fill")
+                            .font(.system(size: 12))
+                            .foregroundStyle(.blue)
+                        Text(String(format: "%.6f, %.6f", region.latitude, region.longitude))
+                            .font(.system(size: 11, design: .monospaced))
+                            .foregroundStyle(.secondary)
+                    }
+
+                    HStack(spacing: 4) {
+                        Image(systemName: "circle.dotted")
+                            .font(.system(size: 12))
+                            .foregroundStyle(.orange)
+                        Text("\(Int(region.radius))m")
+                            .font(.system(size: 11, design: .monospaced))
+                            .foregroundStyle(.secondary)
+                    }
+                }
+
+                HStack(spacing: 6) {
+                    Circle()
+                        .fill(isInside ? Color.green : Color.gray)
+                        .frame(width: 6, height: 6)
+                    Text(isInside ? "Inside Region" : "Outside Region")
+                        .font(.system(size: 12, weight: .medium, design: .rounded))
+                        .foregroundStyle(isInside ? .green : .secondary)
+                }
+            }
+
+            Spacer()
+
+            Button {
+                onDelete()
+            } label: {
+                Image(systemName: "trash.fill")
+                    .font(.system(size: 14))
+                    .foregroundStyle(.red)
+            }
+            .buttonStyle(.bordered)
+            .buttonBorderShape(.circle)
+            .tint(.red)
+        }
+        .padding(.vertical, 4)
+    }
+}
+
+struct EventRow: View {
+    let event: RegionEvent
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: event.type == "enter" ? "arrow.down.circle.fill" : "arrow.up.circle.fill")
+                .font(.system(size: 20))
+                .foregroundStyle(event.type == "enter" ? .green : .orange)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(event.type == "enter" ? "Entered" : "Exited")
+                    .font(.system(size: 14, weight: .semibold, design: .rounded))
+                    .foregroundStyle(.primary)
+
+                Text(event.regionName)
+                    .font(.system(size: 13, design: .rounded))
+                    .foregroundStyle(.secondary)
+
+                Text(event.timestamp.formatted(date: .omitted, time: .shortened))
+                    .font(.system(size: 11, design: .rounded))
+                    .foregroundStyle(.tertiary)
+            }
+
+            Spacer()
+        }
+        .padding(.vertical, 4)
+    }
+}
+
+struct AddRegionView: View {
+    @Environment(\.dismiss) private var dismiss
+    @Binding var name: String
+    @Binding var latitude: String
+    @Binding var longitude: String
+    @Binding var radius: String
+    let currentLocation: CLLocation?
+    let onAdd: (String, Double, Double, Double) -> Void
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    TextField("Region Name", text: $name)
+                        .font(.system(size: 16, design: .rounded))
+                } header: {
+                    Text("Name")
+                        .font(.system(size: 13, weight: .semibold, design: .rounded))
+                }
+
+                Section {
+                    if let location = currentLocation {
+                        Button {
+                            latitude = String(format: "%.6f", location.coordinate.latitude)
+                            longitude = String(format: "%.6f", location.coordinate.longitude)
+                        } label: {
+                            HStack {
+                                Image(systemName: "location.fill")
+                                    .foregroundStyle(.blue)
+                                Text("Use Current Location")
+                                    .font(.system(size: 15, design: .rounded))
+                                Spacer()
+                                Image(systemName: "arrow.right")
+                                    .font(.system(size: 12))
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                    }
+
+                    TextField("Latitude", text: $latitude)
+                        .keyboardType(.decimalPad)
+                        .font(.system(size: 15, design: .monospaced))
+
+                    TextField("Longitude", text: $longitude)
+                        .keyboardType(.decimalPad)
+                        .font(.system(size: 15, design: .monospaced))
+                } header: {
+                    Text("Coordinates")
+                        .font(.system(size: 13, weight: .semibold, design: .rounded))
+                } footer: {
+                    Text("Valid range: Latitude (-90 to 90), Longitude (-180 to 180)")
+                        .font(.system(size: 11, design: .rounded))
+                }
+
+                Section {
+                    HStack {
+                        TextField("Radius", text: $radius)
+                            .keyboardType(.numberPad)
+                            .font(.system(size: 15, design: .monospaced))
+                        Text("meters")
+                            .font(.system(size: 14, design: .rounded))
+                            .foregroundStyle(.secondary)
+                    }
+                } header: {
+                    Text("Radius")
+                        .font(.system(size: 13, weight: .semibold, design: .rounded))
+                } footer: {
+                    Text("Recommended: 100-400 meters. Smaller regions may drain battery faster.")
+                        .font(.system(size: 11, design: .rounded))
+                }
+            }
+            .navigationTitle("Add Region")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                }
+
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Add") {
+                        guard let lat = Double(latitude),
+                              let lon = Double(longitude),
+                              let rad = Double(radius),
+                              !name.isEmpty else { return }
+
+                        onAdd(name, lat, lon, rad)
+                    }
+                    .disabled(name.isEmpty || latitude.isEmpty || longitude.isEmpty || radius.isEmpty)
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Region Monitoring Manager Helper
+
+struct MonitoredRegion: Identifiable {
+    let id = UUID()
+    let name: String
+    let latitude: Double
+    let longitude: Double
+    let radius: Double
+    let identifier: String
+}
+
+struct RegionEvent: Identifiable {
+    let id = UUID()
+    let regionName: String
+    let type: String // "enter" or "exit"
+    let timestamp: Date
+}
+
+class RegionMonitoringManagerHelper: NSObject, ObservableObject, CLLocationManagerDelegate {
+    @Published var monitoredRegions: [MonitoredRegion] = []
+    @Published var regionStates: [UUID: Bool] = [:]
+    @Published var events: [RegionEvent] = []
+    @Published var currentLocation: CLLocation?
+
+    private let locationManager = CLLocationManager()
+
+    override init() {
+        super.init()
+        locationManager.delegate = self
+        locationManager.desiredAccuracy = kCLLocationAccuracyBest
+    }
+
+    func startMonitoring() {
+        locationManager.requestAlwaysAuthorization()
+        locationManager.startUpdatingLocation()
+    }
+
+    func stopMonitoring() {
+        locationManager.stopUpdatingLocation()
+        for region in monitoredRegions {
+            if let clRegion = createCLRegion(from: region) {
+                locationManager.stopMonitoring(for: clRegion)
+            }
+        }
+    }
+
+    func requestLocation() {
+        locationManager.requestLocation()
+    }
+
+    func addRegion(name: String, latitude: Double, longitude: Double, radius: Double) {
+        let identifier = UUID().uuidString
+        let region = MonitoredRegion(
+            name: name,
+            latitude: latitude,
+            longitude: longitude,
+            radius: min(radius, 400), // Cap at 400m
+            identifier: identifier
+        )
+
+        monitoredRegions.append(region)
+        regionStates[region.id] = false
+
+        if let clRegion = createCLRegion(from: region) {
+            locationManager.startMonitoring(for: clRegion)
+            locationManager.requestState(for: clRegion)
+        }
+    }
+
+    func removeRegion(_ region: MonitoredRegion) {
+        if let clRegion = createCLRegion(from: region) {
+            locationManager.stopMonitoring(for: clRegion)
+        }
+
+        monitoredRegions.removeAll { $0.id == region.id }
+        regionStates.removeValue(forKey: region.id)
+    }
+
+    private func createCLRegion(from region: MonitoredRegion) -> CLCircularRegion? {
+        let center = CLLocationCoordinate2D(latitude: region.latitude, longitude: region.longitude)
+        let clRegion = CLCircularRegion(center: center, radius: region.radius, identifier: region.identifier)
+        clRegion.notifyOnEntry = true
+        clRegion.notifyOnExit = true
+        return clRegion
+    }
+
+    // MARK: - CLLocationManagerDelegate
+
+    func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+        guard let location = locations.last else { return }
+        currentLocation = location
+    }
+
+    func locationManager(_ manager: CLLocationManager, didEnterRegion region: CLRegion) {
+        guard let clRegion = region as? CLCircularRegion,
+              let monitoredRegion = monitoredRegions.first(where: { $0.identifier == clRegion.identifier }) else { return }
+
+        DispatchQueue.main.async {
+            self.regionStates[monitoredRegion.id] = true
+            self.events.insert(RegionEvent(
+                regionName: monitoredRegion.name,
+                type: "enter",
+                timestamp: Date()
+            ), at: 0)
+        }
+    }
+
+    func locationManager(_ manager: CLLocationManager, didExitRegion region: CLRegion) {
+        guard let clRegion = region as? CLCircularRegion,
+              let monitoredRegion = monitoredRegions.first(where: { $0.identifier == clRegion.identifier }) else { return }
+
+        DispatchQueue.main.async {
+            self.regionStates[monitoredRegion.id] = false
+            self.events.insert(RegionEvent(
+                regionName: monitoredRegion.name,
+                type: "exit",
+                timestamp: Date()
+            ), at: 0)
+        }
+    }
+
+    func locationManager(_ manager: CLLocationManager, didDetermineState state: CLRegionState, for region: CLRegion) {
+        guard let clRegion = region as? CLCircularRegion,
+              let monitoredRegion = monitoredRegions.first(where: { $0.identifier == clRegion.identifier }) else { return }
+
+        DispatchQueue.main.async {
+            self.regionStates[monitoredRegion.id] = (state == .inside)
+        }
+    }
+
+    func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
+        print("Location manager failed: \(error.localizedDescription)")
+    }
+}
+
+struct ActivityRecognitionDetailView: View {
+    @Environment(\.dismiss) private var dismiss
+    @StateObject private var activityRecognition = ActivityRecognitionManagerHelper()
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(spacing: 24) {
+                    // Current Activity Card
+                    VStack(spacing: 20) {
+                        Image(systemName: getActivityIcon(activityRecognition.currentActivity))
+                            .font(.system(size: 100))
+                            .foregroundStyle(getActivityColor(activityRecognition.currentActivity))
+                            .symbolRenderingMode(.hierarchical)
+                            .symbolEffect(.bounce, value: activityRecognition.currentActivity)
+
+                        VStack(spacing: 8) {
+                            Text("Current Activity")
+                                .font(.system(size: 14, weight: .semibold, design: .rounded))
+                                .foregroundStyle(.secondary)
+
+                            Text(activityRecognition.currentActivity)
+                                .font(.system(size: 32, weight: .bold, design: .rounded))
+                                .foregroundStyle(.primary)
+
+                            // Confidence Badge
+                            HStack(spacing: 6) {
+                                Circle()
+                                    .fill(getConfidenceColor(activityRecognition.confidence))
+                                    .frame(width: 8, height: 8)
+
+                                Text("Confidence: \(activityRecognition.confidence)")
+                                    .font(.system(size: 14, weight: .medium, design: .rounded))
+                                    .foregroundStyle(.secondary)
+                            }
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 8)
+                            .background(.ultraThinMaterial)
+                            .clipShape(Capsule())
+                        }
+                    }
+                    .padding(.vertical, 20)
+                    .frame(maxWidth: .infinity)
+                    .background(
+                        RoundedRectangle(cornerRadius: 24)
+                            .fill(.ultraThinMaterial)
+                    )
+
+                    // Activity Statistics
+                    VStack(spacing: 16) {
+                        HStack {
+                            Image(systemName: "chart.bar.fill")
+                                .foregroundStyle(.blue)
+                            Text("Today's Activity Breakdown")
+                                .font(.system(size: 16, weight: .semibold, design: .rounded))
+                            Spacer()
+                        }
+
+                        if !activityRecognition.activityDurations.isEmpty {
+                            VStack(spacing: 12) {
+                                ForEach(activityRecognition.activityDurations.sorted(by: { $0.value > $1.value }), id: \.key) { activity, duration in
+                                    ActivityDurationRow(
+                                        activity: activity,
+                                        duration: duration,
+                                        totalDuration: activityRecognition.totalDuration
+                                    )
+                                }
+                            }
+                        } else {
+                            Text("No activity data recorded yet today.")
+                                .font(.system(size: 14, design: .rounded))
+                                .foregroundStyle(.secondary)
+                                .frame(maxWidth: .infinity)
+                                .padding()
+                        }
+                    }
+                    .padding()
+                    .background(.ultraThinMaterial)
+                    .clipShape(RoundedRectangle(cornerRadius: 20))
+
+                    // Activity History
+                    VStack(spacing: 16) {
+                        HStack {
+                            Image(systemName: "clock.fill")
+                                .foregroundStyle(.orange)
+                            Text("Recent Activity Changes")
+                                .font(.system(size: 16, weight: .semibold, design: .rounded))
+                            Spacer()
+                        }
+
+                        if !activityRecognition.activityHistory.isEmpty {
+                            VStack(spacing: 12) {
+                                ForEach(activityRecognition.activityHistory.prefix(10)) { record in
+                                    ActivityHistoryRow(record: record)
+                                }
+                            }
+                        } else {
+                            Text("No activity changes recorded yet.")
+                                .font(.system(size: 14, design: .rounded))
+                                .foregroundStyle(.secondary)
+                                .frame(maxWidth: .infinity)
+                                .padding()
+                        }
+                    }
+                    .padding()
+                    .background(.ultraThinMaterial)
+                    .clipShape(RoundedRectangle(cornerRadius: 20))
+
+                    // Info Section
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack {
+                            Image(systemName: "info.circle.fill")
+                                .foregroundStyle(.blue)
+                            Text("About Activity Recognition")
+                                .font(.system(size: 14, weight: .semibold, design: .rounded))
+                        }
+
+                        Text("Activity Recognition uses the motion coprocessor to detect your current activity. It can distinguish between stationary, walking, running, cycling, and automotive activities with varying levels of confidence.")
+                            .font(.system(size: 13, design: .rounded))
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+
+                        Divider()
+
+                        VStack(alignment: .leading, spacing: 8) {
+                            InfoItem(title: "Low Power", description: "Uses motion coprocessor for efficiency", color: .green)
+                            InfoItem(title: "Automatic", description: "Detects activities in the background", color: .blue)
+                            InfoItem(title: "Privacy", description: "All processing happens on device", color: .purple)
+                        }
+                    }
+                    .padding()
+                    .background(.ultraThinMaterial)
+                    .clipShape(RoundedRectangle(cornerRadius: 20))
+                }
+                .padding()
+            }
+            .navigationTitle("Activity Recognition")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Done") { dismiss() }
+                }
+            }
+            .onAppear {
+                activityRecognition.startMonitoring()
+            }
+            .onDisappear {
+                activityRecognition.stopMonitoring()
+            }
+        }
+    }
+
+    private func getActivityIcon(_ activity: String) -> String {
+        switch activity {
+        case "Stationary": return "figure.stand"
+        case "Walking": return "figure.walk"
+        case "Running": return "figure.run"
+        case "Cycling": return "figure.outdoor.cycle"
+        case "Automotive": return "car.fill"
+        default: return "questionmark.circle"
+        }
+    }
+
+    private func getActivityColor(_ activity: String) -> Color {
+        switch activity {
+        case "Stationary": return .gray
+        case "Walking": return .blue
+        case "Running": return .orange
+        case "Cycling": return .green
+        case "Automotive": return .red
+        default: return .secondary
+        }
+    }
+
+    private func getConfidenceColor(_ confidence: String) -> Color {
+        switch confidence {
+        case "High": return .green
+        case "Medium": return .orange
+        case "Low": return .red
+        default: return .gray
+        }
+    }
+}
+
+struct ActivityDurationRow: View {
+    let activity: String
+    let duration: TimeInterval
+    let totalDuration: TimeInterval
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack {
+                Image(systemName: getActivityIcon(activity))
+                    .font(.system(size: 16))
+                    .foregroundStyle(getActivityColor(activity))
+                    .frame(width: 24)
+
+                Text(activity)
+                    .font(.system(size: 14, weight: .medium, design: .rounded))
+                    .foregroundStyle(.primary)
+
+                Spacer()
+
+                Text(formatDuration(duration))
+                    .font(.system(size: 13, weight: .semibold, design: .monospaced))
+                    .foregroundStyle(.secondary)
+            }
+
+            GeometryReader { geometry in
+                ZStack(alignment: .leading) {
+                    Capsule()
+                        .fill(.gray.opacity(0.2))
+                        .frame(height: 6)
+
+                    Capsule()
+                        .fill(getActivityColor(activity))
+                        .frame(width: geometry.size.width * CGFloat(duration / max(totalDuration, 1)), height: 6)
+                }
+            }
+            .frame(height: 6)
+        }
+    }
+
+    private func getActivityIcon(_ activity: String) -> String {
+        switch activity {
+        case "Stationary": return "figure.stand"
+        case "Walking": return "figure.walk"
+        case "Running": return "figure.run"
+        case "Cycling": return "figure.outdoor.cycle"
+        case "Automotive": return "car.fill"
+        default: return "questionmark.circle"
+        }
+    }
+
+    private func getActivityColor(_ activity: String) -> Color {
+        switch activity {
+        case "Stationary": return .gray
+        case "Walking": return .blue
+        case "Running": return .orange
+        case "Cycling": return .green
+        case "Automotive": return .red
+        default: return .secondary
+        }
+    }
+
+    private func formatDuration(_ duration: TimeInterval) -> String {
+        let hours = Int(duration) / 3600
+        let minutes = (Int(duration) % 3600) / 60
+        let seconds = Int(duration) % 60
+
+        if hours > 0 {
+            return String(format: "%dh %dm", hours, minutes)
+        } else if minutes > 0 {
+            return String(format: "%dm %ds", minutes, seconds)
+        } else {
+            return String(format: "%ds", seconds)
+        }
+    }
+}
+
+struct ActivityHistoryRow: View {
+    let record: ActivityHistoryRecord
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: getActivityIcon(record.activity))
+                .font(.system(size: 20))
+                .foregroundStyle(getActivityColor(record.activity))
+                .frame(width: 32)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(record.activity)
+                    .font(.system(size: 14, weight: .semibold, design: .rounded))
+                    .foregroundStyle(.primary)
+
+                HStack(spacing: 6) {
+                    Circle()
+                        .fill(getConfidenceColor(record.confidence))
+                        .frame(width: 6, height: 6)
+
+                    Text(record.confidence)
+                        .font(.system(size: 12, design: .rounded))
+                        .foregroundStyle(.secondary)
+                }
+            }
+
+            Spacer()
+
+            Text(record.timestamp.formatted(date: .omitted, time: .shortened))
+                .font(.system(size: 11, design: .rounded))
+                .foregroundStyle(.tertiary)
+        }
+        .padding(.vertical, 4)
+    }
+
+    private func getActivityIcon(_ activity: String) -> String {
+        switch activity {
+        case "Stationary": return "figure.stand"
+        case "Walking": return "figure.walk"
+        case "Running": return "figure.run"
+        case "Cycling": return "figure.outdoor.cycle"
+        case "Automotive": return "car.fill"
+        default: return "questionmark.circle"
+        }
+    }
+
+    private func getActivityColor(_ activity: String) -> Color {
+        switch activity {
+        case "Stationary": return .gray
+        case "Walking": return .blue
+        case "Running": return .orange
+        case "Cycling": return .green
+        case "Automotive": return .red
+        default: return .secondary
+        }
+    }
+
+    private func getConfidenceColor(_ confidence: String) -> Color {
+        switch confidence {
+        case "High": return .green
+        case "Medium": return .orange
+        case "Low": return .red
+        default: return .gray
+        }
+    }
+}
+
+// MARK: - Activity Recognition Manager Helper
+
+struct ActivityHistoryRecord: Identifiable {
+    let id = UUID()
+    let activity: String
+    let confidence: String
+    let timestamp: Date
+}
+
+class ActivityRecognitionManagerHelper: ObservableObject {
+    @Published var currentActivity: String = "Unknown"
+    @Published var confidence: String = "Unknown"
+    @Published var activityHistory: [ActivityHistoryRecord] = []
+    @Published var activityDurations: [String: TimeInterval] = [:]
+
+    private let activityManager = CMMotionActivityManager()
+    private var lastActivityChangeTime: Date?
+    private var lastActivity: String?
+    private var sessionStartTime: Date?
+
+    var totalDuration: TimeInterval {
+        return activityDurations.values.reduce(0, +)
+    }
+
+    func startMonitoring() {
+        guard CMMotionActivityManager.isActivityAvailable() else {
+            currentActivity = "Not Available"
+            return
+        }
+
+        sessionStartTime = Date()
+        lastActivityChangeTime = Date()
+
+        // Start real-time updates
+        activityManager.startActivityUpdates(to: .main) { [weak self] activity in
+            guard let activity = activity else { return }
+            self?.processActivity(activity)
+        }
+
+        // Query historical data for today
+        let calendar = Calendar.current
+        let now = Date()
+        guard let startOfDay = calendar.date(bySettingHour: 0, minute: 0, second: 0, of: now) else { return }
+
+        activityManager.queryActivityStarting(from: startOfDay, to: now, to: .main) { [weak self] activities, error in
+            guard let activities = activities, error == nil else { return }
+
+            // Calculate durations from historical data
+            for i in 0..<activities.count {
+                let activity = activities[i]
+                let activityType = self?.getActivityType(from: activity) ?? "Unknown"
+
+                let endTime: Date
+                if i < activities.count - 1 {
+                    endTime = activities[i + 1].startDate
+                } else {
+                    endTime = now
+                }
+
+                let duration = endTime.timeIntervalSince(activity.startDate)
+                self?.activityDurations[activityType, default: 0] += duration
+            }
+        }
+    }
+
+    func stopMonitoring() {
+        // Record final activity duration
+        if let lastActivity = lastActivity,
+           let lastChangeTime = lastActivityChangeTime {
+            let duration = Date().timeIntervalSince(lastChangeTime)
+            activityDurations[lastActivity, default: 0] += duration
+        }
+
+        activityManager.stopActivityUpdates()
+    }
+
+    private func processActivity(_ activity: CMMotionActivity) {
+        let activityType = getActivityType(from: activity)
+        let confidenceLevel = getConfidenceLevel(from: activity)
+
+        // Update duration if activity changed
+        if let lastActivity = lastActivity,
+           let lastChangeTime = lastActivityChangeTime,
+           lastActivity != activityType {
+            let duration = Date().timeIntervalSince(lastChangeTime)
+            activityDurations[lastActivity, default: 0] += duration
+            lastActivityChangeTime = Date()
+        } else if lastActivity == nil {
+            lastActivityChangeTime = Date()
+        }
+
+        // Update current activity
+        if currentActivity != activityType || confidence != confidenceLevel {
+            currentActivity = activityType
+            confidence = confidenceLevel
+            lastActivity = activityType
+
+            // Add to history
+            activityHistory.insert(ActivityHistoryRecord(
+                activity: activityType,
+                confidence: confidenceLevel,
+                timestamp: Date()
+            ), at: 0)
+
+            // Keep only last 50 records
+            if activityHistory.count > 50 {
+                activityHistory.removeLast()
+            }
+        }
+    }
+
+    private func getActivityType(from activity: CMMotionActivity) -> String {
+        if activity.stationary {
+            return "Stationary"
+        } else if activity.walking {
+            return "Walking"
+        } else if activity.running {
+            return "Running"
+        } else if activity.cycling {
+            return "Cycling"
+        } else if activity.automotive {
+            return "Automotive"
+        } else {
+            return "Unknown"
+        }
+    }
+
+    private func getConfidenceLevel(from activity: CMMotionActivity) -> String {
+        switch activity.confidence {
+        case .low:
+            return "Low"
+        case .medium:
+            return "Medium"
+        case .high:
+            return "High"
+        @unknown default:
+            return "Unknown"
+        }
     }
 }
 
@@ -4814,51 +6590,109 @@ struct LiDARDepthView: View {
                     // Bottom Legend
                     VStack(spacing: 12) {
                         // Depth Legend
-                        VStack(spacing: 8) {
+                        VStack(spacing: 12) {
                             Text("Depth Legend")
-                                .font(.system(size: 14, weight: .semibold, design: .rounded))
+                                .font(.system(size: 16, weight: .bold, design: .rounded))
                                 .foregroundStyle(.white)
+                                .shadow(radius: 2)
 
-                            HStack(spacing: 4) {
+                            HStack(spacing: 0) {
                                 ForEach(0..<10) { i in
                                     Rectangle()
-                                        .fill(depthColor(for: Float(i) / 10.0))
-                                        .frame(width: 30, height: 20)
+                                        .fill(
+                                            LinearGradient(
+                                                colors: [
+                                                    depthColor(for: Float(i) / 10.0),
+                                                    depthColor(for: Float(i + 1) / 10.0)
+                                                ],
+                                                startPoint: .leading,
+                                                endPoint: .trailing
+                                            )
+                                        )
+                                        .frame(height: 30)
                                 }
                             }
                             .clipShape(RoundedRectangle(cornerRadius: 8))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 8)
+                                    .stroke(.white.opacity(0.3), lineWidth: 1)
+                            )
 
                             HStack {
-                                Text("Close (0m)")
-                                    .font(.system(size: 11, design: .rounded))
-                                Spacer()
-                                Text("Far (5m+)")
-                                    .font(.system(size: 11, design: .rounded))
-                            }
-                            .foregroundStyle(.white.opacity(0.8))
-                        }
-                        .padding()
-                        .background(.ultraThinMaterial)
-                        .clipShape(RoundedRectangle(cornerRadius: 16))
+                                VStack(alignment: .leading, spacing: 4) {
+                                    HStack(spacing: 4) {
+                                        Circle()
+                                            .fill(.red)
+                                            .frame(width: 8, height: 8)
+                                        Text("Close")
+                                            .font(.system(size: 12, weight: .semibold, design: .rounded))
+                                    }
+                                    Text("0m")
+                                        .font(.system(size: 10, design: .rounded))
+                                        .foregroundStyle(.white.opacity(0.7))
+                                }
 
-                        // Instructions
-                        VStack(spacing: 8) {
-                            HStack(spacing: 8) {
-                                Image(systemName: "hand.tap.fill")
-                                    .font(.system(size: 16))
-                                Text("Tap anywhere to measure distance")
-                                    .font(.system(size: 14, design: .rounded))
+                                Spacer()
+
+                                VStack(alignment: .trailing, spacing: 4) {
+                                    HStack(spacing: 4) {
+                                        Text("Far")
+                                            .font(.system(size: 12, weight: .semibold, design: .rounded))
+                                        Circle()
+                                            .fill(.blue)
+                                            .frame(width: 8, height: 8)
+                                    }
+                                    Text("5m+")
+                                        .font(.system(size: 10, design: .rounded))
+                                        .foregroundStyle(.white.opacity(0.7))
+                                }
                             }
                             .foregroundStyle(.white)
-
-                            Text(lidarManager.statusMessage)
-                                .font(.system(size: 12, design: .rounded))
-                                .foregroundStyle(.white.opacity(0.7))
-                                .multilineTextAlignment(.center)
                         }
-                        .padding()
-                        .background(.ultraThinMaterial)
-                        .clipShape(RoundedRectangle(cornerRadius: 16))
+                        .padding(16)
+                        .background(
+                            RoundedRectangle(cornerRadius: 16)
+                                .fill(.black.opacity(0.6))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 16)
+                                        .stroke(.white.opacity(0.2), lineWidth: 1)
+                                )
+                        )
+
+                        // Instructions
+                        VStack(spacing: 10) {
+                            HStack(spacing: 8) {
+                                Image(systemName: "hand.tap.fill")
+                                    .font(.system(size: 18))
+                                    .foregroundStyle(.cyan)
+                                Text("Tap anywhere to measure distance")
+                                    .font(.system(size: 14, weight: .medium, design: .rounded))
+                            }
+                            .foregroundStyle(.white)
+                            .shadow(radius: 2)
+
+                            Divider()
+                                .background(.white.opacity(0.3))
+
+                            HStack(spacing: 8) {
+                                Image(systemName: "info.circle.fill")
+                                    .font(.system(size: 14))
+                                    .foregroundStyle(.blue)
+                                Text(lidarManager.statusMessage)
+                                    .font(.system(size: 13, design: .rounded))
+                            }
+                            .foregroundStyle(.white.opacity(0.9))
+                            .multilineTextAlignment(.center)
+                        }
+                        .padding(16)
+                        .background(
+                            RoundedRectangle(cornerRadius: 16)
+                                .fill(.black.opacity(0.6))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 16)
+                                        .stroke(.white.opacity(0.2), lineWidth: 1)
+                                )
+                        )
                     }
                     .padding()
                 }
@@ -4884,9 +6718,30 @@ struct LiDARDepthView: View {
     }
 
     private func depthColor(for normalizedDepth: Float) -> Color {
-        // Heat map: Red (close) -> Yellow -> Green -> Cyan -> Blue (far)
-        let hue = Double(normalizedDepth) * 0.6 // 0.0 (red) to 0.6 (blue)
-        return Color(hue: hue, saturation: 0.8, brightness: 0.9)
+        // Heat map: Red (close) -> Orange -> Yellow -> Green -> Cyan -> Blue (far)
+        let depth = Double(normalizedDepth)
+
+        if depth < 0.2 {
+            // Red to Orange (0.0 - 0.2)
+            let hue = depth * 0.5 // 0.0 (red) to 0.1 (orange)
+            return Color(hue: hue, saturation: 1.0, brightness: 1.0)
+        } else if depth < 0.4 {
+            // Orange to Yellow (0.2 - 0.4)
+            let hue = 0.1 + (depth - 0.2) * 0.5 // 0.1 (orange) to 0.16 (yellow)
+            return Color(hue: hue, saturation: 1.0, brightness: 1.0)
+        } else if depth < 0.6 {
+            // Yellow to Green (0.4 - 0.6)
+            let hue = 0.16 + (depth - 0.4) * 1.0 // 0.16 (yellow) to 0.36 (green)
+            return Color(hue: hue, saturation: 0.9, brightness: 0.95)
+        } else if depth < 0.8 {
+            // Green to Cyan (0.6 - 0.8)
+            let hue = 0.36 + (depth - 0.6) * 1.2 // 0.36 (green) to 0.5 (cyan)
+            return Color(hue: hue, saturation: 0.85, brightness: 0.9)
+        } else {
+            // Cyan to Blue (0.8 - 1.0)
+            let hue = 0.5 + (depth - 0.8) * 1.0 // 0.5 (cyan) to 0.66 (blue)
+            return Color(hue: hue, saturation: 0.9, brightness: 0.85)
+        }
     }
 }
 
@@ -4895,22 +6750,49 @@ struct LiDARARView: UIViewRepresentable {
     @Binding var selectedPoint: CGPoint?
     @Binding var selectedDistance: Float?
 
-    func makeUIView(context: Context) -> ARSCNView {
+    func makeUIView(context: Context) -> UIView {
+        let containerView = UIView()
+
         let arView = ARSCNView()
         arView.delegate = context.coordinator
         arView.session.delegate = context.coordinator
         context.coordinator.arView = arView
 
+        // Create depth overlay image view
+        let depthOverlayView = UIImageView()
+        depthOverlayView.contentMode = .scaleAspectFill
+        depthOverlayView.alpha = 0.6
+        context.coordinator.depthOverlayView = depthOverlayView
+
+        // Add views to container
+        containerView.addSubview(arView)
+        containerView.addSubview(depthOverlayView)
+
+        arView.translatesAutoresizingMaskIntoConstraints = false
+        depthOverlayView.translatesAutoresizingMaskIntoConstraints = false
+
+        NSLayoutConstraint.activate([
+            arView.topAnchor.constraint(equalTo: containerView.topAnchor),
+            arView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
+            arView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
+            arView.bottomAnchor.constraint(equalTo: containerView.bottomAnchor),
+
+            depthOverlayView.topAnchor.constraint(equalTo: containerView.topAnchor),
+            depthOverlayView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
+            depthOverlayView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
+            depthOverlayView.bottomAnchor.constraint(equalTo: containerView.bottomAnchor)
+        ])
+
         // Start AR session
         manager.startSession(with: arView.session)
 
         let tapGesture = UITapGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.handleTap(_:)))
-        arView.addGestureRecognizer(tapGesture)
+        containerView.addGestureRecognizer(tapGesture)
 
-        return arView
+        return containerView
     }
 
-    func updateUIView(_ uiView: ARSCNView, context: Context) {
+    func updateUIView(_ uiView: UIView, context: Context) {
         // Update if needed
     }
 
@@ -4921,8 +6803,12 @@ struct LiDARARView: UIViewRepresentable {
     class Coordinator: NSObject, ARSCNViewDelegate, ARSessionDelegate {
         let manager: LiDARManagerHelper
         var arView: ARSCNView?
+        var depthOverlayView: UIImageView?
         @Binding var selectedPoint: CGPoint?
         @Binding var selectedDistance: Float?
+        private var frameCount = 0
+        private let frameSkip = 3 // Process every 3rd frame to reduce load
+        private var isProcessing = false
 
         init(manager: LiDARManagerHelper, selectedPoint: Binding<CGPoint?>, selectedDistance: Binding<Float?>) {
             self.manager = manager
@@ -4946,9 +6832,132 @@ struct LiDARARView: UIViewRepresentable {
         }
 
         func session(_ session: ARSession, didUpdate frame: ARFrame) {
+            // Skip frames to reduce processing load
+            frameCount += 1
+            guard frameCount % frameSkip == 0 else { return }
+
+            // Don't process if already processing
+            guard !isProcessing else { return }
+
             // Process depth data
-            if let depthData = frame.sceneDepth?.depthMap {
-                manager.processDepthData(depthData)
+            guard let depthData = frame.sceneDepth?.depthMap else { return }
+
+            isProcessing = true
+
+            // Process on background queue to avoid blocking AR session
+            DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+                autoreleasepool {
+                    guard let self = self else { return }
+
+                    // Create heat map image from depth data
+                    if let heatMapImage = self.createHeatMapImage(from: depthData) {
+                        DispatchQueue.main.async {
+                            self.depthOverlayView?.image = heatMapImage
+                            self.isProcessing = false
+                        }
+                    } else {
+                        self.isProcessing = false
+                    }
+                }
+            }
+
+            manager.processDepthData(depthData)
+        }
+
+        private func createHeatMapImage(from depthMap: CVPixelBuffer) -> UIImage? {
+            guard CVPixelBufferLockBaseAddress(depthMap, .readOnly) == kCVReturnSuccess else {
+                return nil
+            }
+            defer { CVPixelBufferUnlockBaseAddress(depthMap, .readOnly) }
+
+            let fullWidth = CVPixelBufferGetWidth(depthMap)
+            let fullHeight = CVPixelBufferGetHeight(depthMap)
+            let bytesPerRow = CVPixelBufferGetBytesPerRow(depthMap)
+
+            guard let baseAddress = CVPixelBufferGetBaseAddress(depthMap) else { return nil }
+            let depthData = baseAddress.assumingMemoryBound(to: Float32.self)
+
+            // Downsample to reduce processing (use 1/4 resolution)
+            let downsample = 4
+            let width = fullWidth / downsample
+            let height = fullHeight / downsample
+
+            guard width > 0, height > 0 else { return nil }
+
+            guard let context = CGContext(
+                data: nil,
+                width: width,
+                height: height,
+                bitsPerComponent: 8,
+                bytesPerRow: width * 4,
+                space: CGColorSpaceCreateDeviceRGB(),
+                bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+            ) else { return nil }
+
+            guard let pixelBuffer = context.data?.assumingMemoryBound(to: UInt8.self) else { return nil }
+
+            let depthStride = bytesPerRow / MemoryLayout<Float32>.size
+
+            // Use fixed depth range instead of scanning entire buffer
+            let minDepth: Float = 0.0
+            let maxDepth: Float = 5.0
+
+            // Create colored image with downsampling
+            for y in 0..<height {
+                for x in 0..<width {
+                    let srcX = x * downsample
+                    let srcY = y * downsample
+                    let depthIndex = srcY * depthStride + srcX
+                    let depth = depthData[depthIndex]
+
+                    let pixelIndex = (y * width + x) * 4
+
+                    if depth > 0 && depth.isFinite && depth <= maxDepth {
+                        // Normalize depth to 0-1 range
+                        let normalizedDepth = min(max((depth - minDepth) / (maxDepth - minDepth), 0), 1)
+                        let color = getDepthColor(for: normalizedDepth)
+
+                        pixelBuffer[pixelIndex] = UInt8(color.red * 255)
+                        pixelBuffer[pixelIndex + 1] = UInt8(color.green * 255)
+                        pixelBuffer[pixelIndex + 2] = UInt8(color.blue * 255)
+                        pixelBuffer[pixelIndex + 3] = 255
+                    } else {
+                        // Transparent for invalid depth
+                        pixelBuffer[pixelIndex] = 0
+                        pixelBuffer[pixelIndex + 1] = 0
+                        pixelBuffer[pixelIndex + 2] = 0
+                        pixelBuffer[pixelIndex + 3] = 0
+                    }
+                }
+            }
+
+            guard let cgImage = context.makeImage() else { return nil }
+            return UIImage(cgImage: cgImage)
+        }
+
+        private func getDepthColor(for normalizedDepth: Float) -> (red: CGFloat, green: CGFloat, blue: CGFloat) {
+            let depth = CGFloat(normalizedDepth)
+
+            if depth < 0.2 {
+                // Red to Orange
+                let t = depth / 0.2
+                return (1.0, t * 0.5, 0.0)
+            } else if depth < 0.4 {
+                // Orange to Yellow
+                let t = (depth - 0.2) / 0.2
+                return (1.0, 0.5 + t * 0.5, 0.0)
+            } else if depth < 0.6 {
+                // Yellow to Green
+                let t = (depth - 0.4) / 0.2
+                return (1.0 - t, 1.0, 0.0)
+            } else if depth < 0.8 {
+                // Green to Cyan
+                let t = (depth - 0.6) / 0.2
+                return (0.0, 1.0, t)
+            } else {
+                // Cyan to Blue
+                let t = (depth - 0.8) / 0.2
+                return (0.0, 1.0 - t * 0.5, 1.0)
             }
         }
 

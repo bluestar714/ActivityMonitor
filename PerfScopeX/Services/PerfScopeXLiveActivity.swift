@@ -1,0 +1,108 @@
+//
+//  PerfScopeXLiveActivity.swift
+//  PerfScopeX
+//
+//  Live Activities for Dynamic Island and Lock Screen
+//
+
+import ActivityKit
+import SwiftUI
+
+// MARK: - Activity Attributes
+
+@available(iOS 16.1, *)
+struct PerfScopeXAttributes: ActivityAttributes {
+    public struct ContentState: Codable, Hashable {
+        var cpuUsage: Double
+        var memoryUsage: Double
+        var networkSpeed: Double
+        var timestamp: Date
+    }
+
+    var startTime: Date
+}
+
+// MARK: - Live Activity Manager
+
+@available(iOS 16.1, *)
+@MainActor
+class LiveActivityManager: ObservableObject {
+    static let shared = LiveActivityManager()
+
+    @Published var currentActivity: Activity<PerfScopeXAttributes>?
+
+    private init() {}
+
+    // MARK: - Start Live Activity
+
+    func startLiveActivity(with metrics: MetricsSnapshot) {
+        // Check if already running
+        if currentActivity != nil {
+            updateLiveActivity(with: metrics)
+            return
+        }
+
+        let attributes = PerfScopeXAttributes(startTime: Date())
+        let cpuTotal = metrics.cpu.userTime + metrics.cpu.systemTime
+        let contentState = PerfScopeXAttributes.ContentState(
+            cpuUsage: cpuTotal,
+            memoryUsage: metrics.memory.usagePercentage,
+            networkSpeed: metrics.network.downloadSpeedMBps,
+            timestamp: Date()
+        )
+
+        do {
+            let activity = try Activity<PerfScopeXAttributes>.request(
+                attributes: attributes,
+                contentState: contentState,
+                pushType: nil
+            )
+            currentActivity = activity
+            print("✅ Live Activity started: \(activity.id)")
+        } catch {
+            print("❌ Error starting Live Activity: \(error.localizedDescription)")
+        }
+    }
+
+    // MARK: - Update Live Activity
+
+    func updateLiveActivity(with metrics: MetricsSnapshot) {
+        guard let activity = currentActivity else { return }
+
+        let cpuTotal = metrics.cpu.userTime + metrics.cpu.systemTime
+        let contentState = PerfScopeXAttributes.ContentState(
+            cpuUsage: cpuTotal,
+            memoryUsage: metrics.memory.usagePercentage,
+            networkSpeed: metrics.network.downloadSpeedMBps,
+            timestamp: Date()
+        )
+
+        Task {
+            await activity.update(using: contentState)
+        }
+    }
+
+    // MARK: - End Live Activity
+
+    func endLiveActivity() {
+        guard let activity = currentActivity else { return }
+
+        Task {
+            await activity.end(dismissalPolicy: .immediate)
+            currentActivity = nil
+            print("✅ Live Activity ended")
+        }
+    }
+
+    // MARK: - Check Active Activities
+
+    func checkForActiveActivities() {
+        Task {
+            for activity in Activity<PerfScopeXAttributes>.activities {
+                currentActivity = activity
+                print("✅ Found existing Live Activity: \(activity.id)")
+                break
+            }
+        }
+    }
+}

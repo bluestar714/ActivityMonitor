@@ -78,6 +78,18 @@
     <string>PerfScopeX uses the microphone to display audio level meter and test microphone functionality.</string>
     <key>NSCameraUsageDescription</key>
     <string>PerfScopeX uses the camera to test camera sensors, display live preview, and demonstrate camera capabilities.</string>
+    <key>NFCReaderUsageDescription</key>
+    <string>PerfScopeX uses NFC to read and display NFC tag information including NDEF, FeliCa, ISO 7816, and MIFARE tags.</string>
+    <key>com.apple.developer.nfc.readersession.iso7816.select-identifiers</key>
+    <array>
+        <string></string>
+    </array>
+    <key>com.apple.developer.nfc.readersession.felica.systemcodes</key>
+    <array>
+        <string>88B4</string>
+        <string>8FC1</string>
+        <string>8008</string>
+    </array>
     <key>NSPrivacyAccessedAPITypes</key>
     <array>
         <dict>

@@ -2136,6 +2136,7 @@ struct SensorsView: View {
     @State private var showingIBeacon = false
     @State private var showingRegionMonitoring = false
     @State private var showingActivityRecognition = false
+    @State private var showingNFC = false
 
     var body: some View {
         List {
@@ -2399,6 +2400,49 @@ struct SensorsView: View {
                     .font(.system(size: 12, design: .rounded))
             }
 
+            // NFC Reader
+            Section {
+                Button { showingNFC = true } label: {
+                    HStack(spacing: 12) {
+                        Image(systemName: "wave.3.right")
+                            .font(.system(size: 24))
+                            .foregroundStyle(NFCReaderSession.readingAvailable ? Color.blue : Color.gray)
+                            .symbolRenderingMode(.hierarchical)
+                            .frame(width: 40)
+
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("NFC Reader")
+                                .font(.system(size: 16, weight: .medium, design: .rounded))
+                                .foregroundStyle(.primary)
+
+                            Text(NFCReaderSession.readingAvailable ? "Available - Tap to scan tags" : "Not Available")
+                                .font(.system(size: 13, design: .rounded))
+                                .foregroundStyle(NFCReaderSession.readingAvailable ? .green : .secondary)
+                        }
+
+                        Spacer()
+
+                        if NFCReaderSession.readingAvailable {
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    .padding(.vertical, 4)
+                }
+                .disabled(!NFCReaderSession.readingAvailable)
+            } header: {
+                HStack {
+                    Image(systemName: "wave.3.right")
+                        .foregroundStyle(.blue.gradient)
+                    Text("NFC")
+                }
+                .font(.system(size: 13, weight: .semibold, design: .rounded))
+            } footer: {
+                Text("Tap to scan NFC tags (NDEF, FeliCa, ISO 7816, MIFARE).")
+                    .font(.system(size: 12, design: .rounded))
+            }
+
             // Connectivity
             Section {
                 ConnectivityRow()
@@ -2497,6 +2541,9 @@ struct SensorsView: View {
         }
         .sheet(isPresented: $showingActivityRecognition) {
             ActivityRecognitionDetailView()
+        }
+        .sheet(isPresented: $showingNFC) {
+            NFCReaderDetailView()
         }
     }
 
@@ -7205,6 +7252,652 @@ struct OSSLicenseRow: View {
             .foregroundStyle(.tertiary)
         }
         .padding(.vertical, 4)
+    }
+}
+
+// MARK: - NFC Reader Detail View
+
+@available(iOS 17.0, *)
+struct NFCReaderDetailView: View {
+    @Environment(\.dismiss) private var dismiss
+    @StateObject private var nfcCoordinator = NFCCoordinator()
+    @State private var selectedMode: NFCScanMode = .ndef
+
+    enum NFCScanMode: String, CaseIterable {
+        case ndef = "NDEF"
+        case nativeTag = "Native Tag"
+
+        var description: String {
+            switch self {
+            case .ndef: return "Read NDEF formatted tags"
+            case .nativeTag: return "ISO 7816 / FeliCa / MIFARE"
+            }
+        }
+    }
+
+    var body: some View {
+        NavigationStack {
+            List {
+                // Scan Mode Selection
+                Section {
+                    Picker("Scan Mode", selection: $selectedMode) {
+                        ForEach(NFCScanMode.allCases, id: \.self) { mode in
+                            Text(mode.rawValue).tag(mode)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                    .listRowBackground(Color.clear)
+                    .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 8, trailing: 0))
+
+                    Text(selectedMode.description)
+                        .font(.system(size: 13, design: .rounded))
+                        .foregroundStyle(.secondary)
+                        .listRowBackground(Color.clear)
+                } header: {
+                    HStack {
+                        Image(systemName: "wave.3.right")
+                            .foregroundStyle(.blue.gradient)
+                        Text("Scan Mode")
+                    }
+                    .font(.system(size: 13, weight: .semibold, design: .rounded))
+                }
+
+                // Scan Button
+                Section {
+                    Button {
+                        startScan()
+                    } label: {
+                        HStack {
+                            Spacer()
+                            Image(systemName: nfcCoordinator.isScanning ? "stop.circle.fill" : "wave.3.right.circle.fill")
+                                .font(.system(size: 22))
+                            Text(nfcCoordinator.isScanning ? "Scanning..." : "Start Scan")
+                                .font(.system(size: 17, weight: .semibold, design: .rounded))
+                            Spacer()
+                        }
+                        .foregroundStyle(.white)
+                        .padding(.vertical, 12)
+                    }
+                    .listRowBackground(
+                        RoundedRectangle(cornerRadius: 10)
+                            .fill(nfcCoordinator.isScanning ? Color.orange.gradient : Color.blue.gradient)
+                    )
+                    .disabled(nfcCoordinator.isScanning)
+                }
+
+                // Error Message
+                if let error = nfcCoordinator.lastError {
+                    Section {
+                        HStack(spacing: 10) {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .foregroundStyle(.yellow)
+                            Text(error)
+                                .font(.system(size: 14, design: .rounded))
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                }
+
+                // Scan Results
+                if !nfcCoordinator.scannedTags.isEmpty {
+                    Section {
+                        ForEach(nfcCoordinator.scannedTags) { tag in
+                            NFCTagResultRow(tag: tag)
+                        }
+                    } header: {
+                        HStack {
+                            Image(systemName: "list.bullet.rectangle")
+                                .foregroundStyle(.green.gradient)
+                            Text("Scan Results (\(nfcCoordinator.scannedTags.count))")
+                        }
+                        .font(.system(size: 13, weight: .semibold, design: .rounded))
+                    }
+
+                    Section {
+                        Button(role: .destructive) {
+                            withAnimation {
+                                nfcCoordinator.scannedTags.removeAll()
+                            }
+                        } label: {
+                            HStack {
+                                Spacer()
+                                Image(systemName: "trash")
+                                Text("Clear Results")
+                                Spacer()
+                            }
+                            .font(.system(size: 15, weight: .medium, design: .rounded))
+                        }
+                    }
+                }
+
+                // NFC Info
+                Section {
+                    HStack(spacing: 12) {
+                        Image(systemName: "info.circle.fill")
+                            .foregroundStyle(.blue)
+                            .font(.system(size: 20))
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("NFC Available")
+                                .font(.system(size: 14, weight: .medium, design: .rounded))
+                            Text(NFCReaderSession.readingAvailable ? "Yes" : "No")
+                                .font(.system(size: 13, design: .rounded))
+                                .foregroundStyle(NFCReaderSession.readingAvailable ? .green : .red)
+                        }
+                    }
+                    .padding(.vertical, 4)
+
+                    HStack(spacing: 12) {
+                        Image(systemName: "tag.fill")
+                            .foregroundStyle(.purple)
+                            .font(.system(size: 20))
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Supported Tag Types")
+                                .font(.system(size: 14, weight: .medium, design: .rounded))
+                            Text("NDEF, ISO 7816, FeliCa, MIFARE")
+                                .font(.system(size: 13, design: .rounded))
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    .padding(.vertical, 4)
+                } header: {
+                    HStack {
+                        Image(systemName: "info.circle")
+                            .foregroundStyle(.gray.gradient)
+                        Text("Device Info")
+                    }
+                    .font(.system(size: 13, weight: .semibold, design: .rounded))
+                }
+            }
+            .navigationTitle("NFC Reader")
+            .navigationBarTitleDisplayMode(.large)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Done") { dismiss() }
+                        .font(.system(size: 16, weight: .medium, design: .rounded))
+                }
+            }
+        }
+    }
+
+    private func startScan() {
+        switch selectedMode {
+        case .ndef:
+            nfcCoordinator.startNDEFScan()
+        case .nativeTag:
+            nfcCoordinator.startTagScan()
+        }
+    }
+}
+
+// MARK: - NFC Tag Result Row
+
+struct NFCTagResultRow: View {
+    let tag: NFCTagInfo
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Image(systemName: tag.typeIcon)
+                    .foregroundStyle(tag.typeColor.gradient)
+                    .font(.system(size: 18))
+                Text(tag.typeName)
+                    .font(.system(size: 15, weight: .semibold, design: .rounded))
+                Spacer()
+                Text(tag.timestamp, style: .time)
+                    .font(.system(size: 12, design: .rounded))
+                    .foregroundStyle(.secondary)
+            }
+
+            if !tag.identifier.isEmpty {
+                HStack(spacing: 6) {
+                    Text("UID:")
+                        .font(.system(size: 12, weight: .semibold, design: .rounded))
+                        .foregroundStyle(.secondary)
+                    Text(tag.identifier)
+                        .font(.system(size: 12, design: .monospaced))
+                        .foregroundStyle(.primary)
+                        .textSelection(.enabled)
+                }
+            }
+
+            ForEach(tag.records) { record in
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "doc.text")
+                            .font(.system(size: 11))
+                            .foregroundStyle(.secondary)
+                        Text(record.typeDescription)
+                            .font(.system(size: 12, weight: .medium, design: .rounded))
+                            .foregroundStyle(.secondary)
+                    }
+                    Text(record.content)
+                        .font(.system(size: 13, design: .rounded))
+                        .foregroundStyle(.primary)
+                        .textSelection(.enabled)
+                }
+                .padding(10)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(.ultraThinMaterial)
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+            }
+
+            if tag.records.isEmpty && !tag.rawData.isEmpty {
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "number")
+                            .font(.system(size: 11))
+                            .foregroundStyle(.secondary)
+                        Text("Raw Data")
+                            .font(.system(size: 12, weight: .medium, design: .rounded))
+                            .foregroundStyle(.secondary)
+                    }
+                    Text(tag.rawData)
+                        .font(.system(size: 12, design: .monospaced))
+                        .foregroundStyle(.primary)
+                        .textSelection(.enabled)
+                }
+                .padding(10)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(.ultraThinMaterial)
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+            }
+        }
+        .padding(.vertical, 4)
+    }
+}
+
+// MARK: - NFC Data Models
+
+struct NFCTagInfo: Identifiable {
+    let id = UUID()
+    let typeName: String
+    let typeIcon: String
+    let typeColor: Color
+    let identifier: String
+    let records: [NFCRecordInfo]
+    let rawData: String
+    let timestamp: Date
+}
+
+struct NFCRecordInfo: Identifiable {
+    let id = UUID()
+    let typeDescription: String
+    let content: String
+}
+
+// MARK: - NFC Coordinator
+
+class NFCCoordinator: NSObject, ObservableObject, NFCNDEFReaderSessionDelegate, NFCTagReaderSessionDelegate {
+    @Published var scannedTags: [NFCTagInfo] = []
+    @Published var isScanning = false
+    @Published var lastError: String?
+
+    private var ndefSession: NFCNDEFReaderSession?
+    private var tagSession: NFCTagReaderSession?
+
+    // MARK: - Start NDEF Scan
+
+    func startNDEFScan() {
+        guard NFCReaderSession.readingAvailable else {
+            lastError = "NFC is not available on this device."
+            return
+        }
+        lastError = nil
+        ndefSession = NFCNDEFReaderSession(delegate: self, queue: .main, invalidateAfterFirstRead: false)
+        ndefSession?.alertMessage = "Hold your iPhone near an NFC tag."
+        ndefSession?.begin()
+        isScanning = true
+    }
+
+    // MARK: - Start Native Tag Scan
+
+    func startTagScan() {
+        guard NFCReaderSession.readingAvailable else {
+            lastError = "NFC is not available on this device."
+            return
+        }
+        lastError = nil
+        tagSession = NFCTagReaderSession(pollingOption: [.iso14443, .iso15693, .iso18092], delegate: self, queue: .main)
+        tagSession?.alertMessage = "Hold your iPhone near an NFC tag."
+        tagSession?.begin()
+        isScanning = true
+    }
+
+    // MARK: - NFCNDEFReaderSessionDelegate
+
+    func readerSession(_ session: NFCNDEFReaderSession, didInvalidateWithError error: Error) {
+        DispatchQueue.main.async {
+            self.isScanning = false
+            let nfcError = error as! NFCReaderError
+            if nfcError.code != .readerSessionInvalidationErrorFirstNDEFTagRead &&
+               nfcError.code != .readerSessionInvalidationErrorUserCanceled {
+                self.lastError = error.localizedDescription
+            }
+        }
+    }
+
+    func readerSession(_ session: NFCNDEFReaderSession, didDetectNDEFs messages: [NFCNDEFMessage]) {
+        DispatchQueue.main.async {
+            for message in messages {
+                let records = message.records.map { record in
+                    NFCRecordInfo(
+                        typeDescription: self.ndefRecordTypeDescription(record),
+                        content: self.ndefRecordContent(record)
+                    )
+                }
+                let tag = NFCTagInfo(
+                    typeName: "NDEF",
+                    typeIcon: "tag.fill",
+                    typeColor: .blue,
+                    identifier: "",
+                    records: records,
+                    rawData: "",
+                    timestamp: Date()
+                )
+                self.scannedTags.insert(tag, at: 0)
+            }
+        }
+    }
+
+    func readerSession(_ session: NFCNDEFReaderSession, didDetect tags: [NFCNDEFTag]) {
+        guard let tag = tags.first else { return }
+        session.connect(to: tag) { error in
+            if let error = error {
+                session.alertMessage = "Connection failed: \(error.localizedDescription)"
+                session.invalidate()
+                return
+            }
+            tag.queryNDEFStatus { status, capacity, error in
+                if let error = error {
+                    session.alertMessage = "Query failed: \(error.localizedDescription)"
+                    session.invalidate()
+                    return
+                }
+                switch status {
+                case .notSupported:
+                    session.alertMessage = "Tag is not NDEF compliant."
+                    session.invalidate()
+                case .readOnly, .readWrite:
+                    tag.readNDEF { message, error in
+                        DispatchQueue.main.async {
+                            if let message = message {
+                                let records = message.records.map { record in
+                                    NFCRecordInfo(
+                                        typeDescription: self.ndefRecordTypeDescription(record),
+                                        content: self.ndefRecordContent(record)
+                                    )
+                                }
+                                let tagInfo = NFCTagInfo(
+                                    typeName: "NDEF",
+                                    typeIcon: "tag.fill",
+                                    typeColor: .blue,
+                                    identifier: "",
+                                    records: records,
+                                    rawData: "",
+                                    timestamp: Date()
+                                )
+                                self.scannedTags.insert(tagInfo, at: 0)
+                                session.alertMessage = "Tag read successfully!"
+                            } else {
+                                session.alertMessage = "Failed to read NDEF: \(error?.localizedDescription ?? "Unknown")"
+                            }
+                            session.invalidate()
+                        }
+                    }
+                @unknown default:
+                    session.alertMessage = "Unknown NDEF status."
+                    session.invalidate()
+                }
+            }
+        }
+    }
+
+    // MARK: - NFCTagReaderSessionDelegate
+
+    func tagReaderSession(_ session: NFCTagReaderSession, didInvalidateWithError error: Error) {
+        DispatchQueue.main.async {
+            self.isScanning = false
+            let nfcError = error as! NFCReaderError
+            if nfcError.code != .readerSessionInvalidationErrorUserCanceled {
+                self.lastError = error.localizedDescription
+            }
+        }
+    }
+
+    func tagReaderSession(_ session: NFCTagReaderSession, didDetect tags: [NFCTag]) {
+        guard let tag = tags.first else { return }
+        session.connect(to: tag) { error in
+            if let error = error {
+                session.alertMessage = "Connection failed: \(error.localizedDescription)"
+                session.invalidate()
+                return
+            }
+
+            switch tag {
+            case .iso7816(let iso7816Tag):
+                self.handleISO7816(tag: iso7816Tag, session: session)
+            case .feliCa(let feliCaTag):
+                self.handleFeliCa(tag: feliCaTag, session: session)
+            case .miFare(let miFareTag):
+                self.handleMiFare(tag: miFareTag, session: session)
+            case .iso15693(let iso15693Tag):
+                self.handleISO15693(tag: iso15693Tag, session: session)
+            @unknown default:
+                DispatchQueue.main.async {
+                    let tagInfo = NFCTagInfo(
+                        typeName: "Unknown",
+                        typeIcon: "questionmark.circle",
+                        typeColor: .gray,
+                        identifier: "",
+                        records: [],
+                        rawData: "",
+                        timestamp: Date()
+                    )
+                    self.scannedTags.insert(tagInfo, at: 0)
+                }
+                session.alertMessage = "Unknown tag type detected."
+                session.invalidate()
+            }
+        }
+    }
+
+    func tagReaderSessionDidBecomeActive(_ session: NFCTagReaderSession) {
+        // Session is active
+    }
+
+    // MARK: - Tag Handlers
+
+    private func handleISO7816(tag: NFCISO7816Tag, session: NFCTagReaderSession) {
+        let uid = tag.identifier.map { String(format: "%02X", $0) }.joined(separator: ":")
+        let aid = tag.initialSelectedAID
+        let historicalBytes = tag.historicalBytes?.map { String(format: "%02X", $0) }.joined(separator: " ") ?? "N/A"
+
+        var records: [NFCRecordInfo] = []
+        if !aid.isEmpty {
+            records.append(NFCRecordInfo(typeDescription: "Application ID (AID)", content: aid))
+        }
+        records.append(NFCRecordInfo(typeDescription: "Historical Bytes", content: historicalBytes))
+
+        DispatchQueue.main.async {
+            let tagInfo = NFCTagInfo(
+                typeName: "ISO 7816",
+                typeIcon: "creditcard.fill",
+                typeColor: .orange,
+                identifier: uid,
+                records: records,
+                rawData: "",
+                timestamp: Date()
+            )
+            self.scannedTags.insert(tagInfo, at: 0)
+        }
+        session.alertMessage = "ISO 7816 tag read successfully!"
+        session.invalidate()
+    }
+
+    private func handleFeliCa(tag: NFCFeliCaTag, session: NFCTagReaderSession) {
+        let idm = tag.currentIDm.map { String(format: "%02X", $0) }.joined(separator: ":")
+        let systemCode = tag.currentSystemCode.map { String(format: "%02X", $0) }.joined()
+
+        var records: [NFCRecordInfo] = [
+            NFCRecordInfo(typeDescription: "System Code", content: "0x\(systemCode)"),
+            NFCRecordInfo(typeDescription: "IDm (Manufacture ID)", content: idm)
+        ]
+
+        // Request system info
+        tag.requestService(nodeCodeList: [Data([0x00, 0x01])]) { nodes, error in
+            if error == nil {
+                let nodeInfo = nodes.map { $0.map { String(format: "%02X", $0) }.joined() }.joined(separator: ", ")
+                if !nodeInfo.isEmpty {
+                    records.append(NFCRecordInfo(typeDescription: "Node Key Versions", content: nodeInfo))
+                }
+            }
+
+            DispatchQueue.main.async {
+                let tagInfo = NFCTagInfo(
+                    typeName: "FeliCa",
+                    typeIcon: "wave.3.forward.circle.fill",
+                    typeColor: .green,
+                    identifier: idm,
+                    records: records,
+                    rawData: "",
+                    timestamp: Date()
+                )
+                self.scannedTags.insert(tagInfo, at: 0)
+            }
+            session.alertMessage = "FeliCa tag read successfully!"
+            session.invalidate()
+        }
+    }
+
+    private func handleMiFare(tag: NFCMiFareTag, session: NFCTagReaderSession) {
+        let uid = tag.identifier.map { String(format: "%02X", $0) }.joined(separator: ":")
+
+        let familyName: String
+        switch tag.mifareFamily {
+        case .ultralight: familyName = "MIFARE Ultralight"
+        case .plus: familyName = "MIFARE Plus"
+        case .desfire: familyName = "MIFARE DESFire"
+        case .unknown: familyName = "MIFARE (Unknown Family)"
+        @unknown default: familyName = "MIFARE"
+        }
+
+        let historicalBytes = tag.historicalBytes?.map { String(format: "%02X", $0) }.joined(separator: " ") ?? "N/A"
+
+        let records: [NFCRecordInfo] = [
+            NFCRecordInfo(typeDescription: "Family", content: familyName),
+            NFCRecordInfo(typeDescription: "Historical Bytes", content: historicalBytes)
+        ]
+
+        DispatchQueue.main.async {
+            let tagInfo = NFCTagInfo(
+                typeName: familyName,
+                typeIcon: "memorychip.fill",
+                typeColor: .purple,
+                identifier: uid,
+                records: records,
+                rawData: "",
+                timestamp: Date()
+            )
+            self.scannedTags.insert(tagInfo, at: 0)
+        }
+        session.alertMessage = "\(familyName) tag read successfully!"
+        session.invalidate()
+    }
+
+    private func handleISO15693(tag: NFCISO15693Tag, session: NFCTagReaderSession) {
+        let uid = tag.identifier.map { String(format: "%02X", $0) }.joined(separator: ":")
+        let icManufacturerCode = String(format: "0x%02X", tag.icManufacturerCode)
+
+        tag.getSystemInfo(requestFlags: [.highDataRate]) { dsfid, afi, blockSize, blockCount, icReference, error in
+            var records: [NFCRecordInfo] = [
+                NFCRecordInfo(typeDescription: "IC Manufacturer Code", content: icManufacturerCode)
+            ]
+
+            if error == nil {
+                records.append(NFCRecordInfo(typeDescription: "Block Size", content: "\(blockSize) bytes"))
+                records.append(NFCRecordInfo(typeDescription: "Block Count", content: "\(blockCount)"))
+                records.append(NFCRecordInfo(typeDescription: "DSFID", content: String(format: "0x%02X", dsfid)))
+                records.append(NFCRecordInfo(typeDescription: "AFI", content: String(format: "0x%02X", afi)))
+            }
+
+            DispatchQueue.main.async {
+                let tagInfo = NFCTagInfo(
+                    typeName: "ISO 15693",
+                    typeIcon: "barcode.viewfinder",
+                    typeColor: .teal,
+                    identifier: uid,
+                    records: records,
+                    rawData: "",
+                    timestamp: Date()
+                )
+                self.scannedTags.insert(tagInfo, at: 0)
+            }
+            session.alertMessage = "ISO 15693 tag read successfully!"
+            session.invalidate()
+        }
+    }
+
+    // MARK: - NDEF Helpers
+
+    private func ndefRecordTypeDescription(_ record: NFCNDEFPayload) -> String {
+        switch record.typeNameFormat {
+        case .nfcWellKnown:
+            let type = String(data: record.type, encoding: .utf8) ?? ""
+            switch type {
+            case "T": return "Text"
+            case "U": return "URI"
+            case "Sp": return "Smart Poster"
+            default: return "Well-Known (\(type))"
+            }
+        case .media:
+            return String(data: record.type, encoding: .utf8) ?? "Media"
+        case .absoluteURI:
+            return "Absolute URI"
+        case .nfcExternal:
+            return String(data: record.type, encoding: .utf8) ?? "External"
+        case .empty:
+            return "Empty"
+        case .unknown:
+            return "Unknown"
+        case .unchanged:
+            return "Unchanged"
+        @unknown default:
+            return "Unknown Format"
+        }
+    }
+
+    private func ndefRecordContent(_ record: NFCNDEFPayload) -> String {
+        switch record.typeNameFormat {
+        case .nfcWellKnown:
+            let type = String(data: record.type, encoding: .utf8) ?? ""
+            if type == "T" {
+                // Text record: first byte is language code length
+                let payload = record.payload
+                if payload.count > 1 {
+                    let langCodeLength = Int(payload[0] & 0x3F)
+                    if payload.count > langCodeLength + 1 {
+                        let textData = payload.subdata(in: (langCodeLength + 1)..<payload.count)
+                        return String(data: textData, encoding: .utf8) ?? hexString(payload)
+                    }
+                }
+                return hexString(payload)
+            } else if type == "U" {
+                // URI record: first byte is URI prefix code
+                if let url = record.wellKnownTypeURIPayload() {
+                    return url.absoluteString
+                }
+                return hexString(record.payload)
+            }
+            return String(data: record.payload, encoding: .utf8) ?? hexString(record.payload)
+        case .media, .absoluteURI, .nfcExternal:
+            return String(data: record.payload, encoding: .utf8) ?? hexString(record.payload)
+        default:
+            return hexString(record.payload)
+        }
+    }
+
+    private func hexString(_ data: Data) -> String {
+        data.map { String(format: "%02X", $0) }.joined(separator: " ")
     }
 }
 

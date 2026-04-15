@@ -1,0 +1,23 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [122.93, 20.42],
+            [154.00, 20.42],
+            [154.00, 45.55],
+            [122.93, 45.55],
+            [122.93, 20.42]
+          ]
+        ]
+      },
+      "properties": {
+        "name": "Japan"
+      }
+    }
+  ]
+}
